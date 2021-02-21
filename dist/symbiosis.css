@@ -1,0 +1,111 @@
+body {
+  background-color: #121212;
+  color: #ff5067;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: calc(45vw / 45);
+}
+
+span {
+  border: 1px solid black;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+#joinDiv {
+  position: absolute;
+  top: 0px;
+  width: 100vw;
+  text-align: center;
+}
+
+.tabs {
+  width: 100%;
+}
+
+.tab {
+  border: 3px solid #888888;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  margin: 3px;
+}
+
+.tab.active {
+  border: 3px solid #ff4488;
+}
+
+.tabCollection {
+  position: absolute;
+  width: 50vw;
+  left: 0px;
+  top: 24px;
+  height: calc(90vh - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+.sharedTextArea {
+  border: 3px solid #ff4488;
+  border-radius: 10px;
+  scroll-behavior: auto;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  margin: 3px;
+  background-color: #fff0;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  resize: none;
+  flex-grow: 1;
+}
+
+#GameFrame {
+  position: absolute;
+  width: calc(50vw);
+  height: calc(0.618 * 50vw);
+  right: 0px;
+  top: 24px;
+  background: linear-gradient(#ddffff, #ffaa99);
+}
+
+#Restart {
+  position: absolute;
+  right: 0px;
+  bottom: 20vh;
+  border-radius: 20px;
+  padding: 15px;
+  margin: 15px;
+  background-color: #ffffff22;
+}
+
+.shadow {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+  z-index: -10;
+  filter: saturate(2);
+}
+
+.status {
+  position: absolute;
+  right: 0px;
+  bottom: 30px;
+  color: red;
+}
+
+.pulse {
+  color: red;
+  animation: pulse 500ms linear;
+}
+
+@keyframes pulse {
+  0% { color: pink; }
+  100% {color: red; }
+}
+
+.project {
+  border-radius: 20px;
+  padding: 15px;
+  margin: 15px;
+  background-color: #ffffff22;
+}
