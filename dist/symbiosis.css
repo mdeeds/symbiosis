@@ -65,6 +65,8 @@ span {
   right: 0px;
   top: 24px;
   background: linear-gradient(#ddffff, #ffaa99);
+  border-radius: 2vw;
+  box-shadow: 0 0 0.5vw #fff;
 }
 
 #Restart {

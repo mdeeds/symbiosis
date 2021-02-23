@@ -1,15 +1,28 @@
+import { EditManager } from "./editManager";
 import { GameFrame } from "./gameFrame";
 import { HeartbeatGroup } from "./heartbeatGroup";
+import { Edit } from "./levenshtein";
+import { PeerConnection } from "./peerConnection";
 
 export class StateObserver {
   private heartbeatGroup: HeartbeatGroup;
   private gameFrame: GameFrame;
+  private editManager: EditManager;
 
   private codeMap: Map<string, string>;
+  private id: string;
 
-  constructor(heartbeatGroup: HeartbeatGroup, gameFrame: GameFrame) {
+  constructor(heartbeatGroup: HeartbeatGroup, editManager: EditManager) {
     this.heartbeatGroup = heartbeatGroup;
-    this.gameFrame = gameFrame;
+    this.gameFrame = new GameFrame();
+    this.editManager = editManager;
+    heartbeatGroup.getConnection().waitReady().then((connection) => {
+      this.initialize(connection);
+    })
+  }
+
+  initialize(connection: PeerConnection) {
+    this.id = connection.id();
     this.codeMap = new Map<string, string>();
 
     const restartButton = document.createElement('div');
@@ -19,7 +32,13 @@ export class StateObserver {
     body.appendChild(restartButton);
     restartButton.addEventListener('click', (ev) => {
       this.sendCode();
-    })
+    });
+
+    this.getConnection().addCallback("edit: ",
+      (serialized: string) => {
+        const edits: Edit<string>[] = JSON.parse(serialized);
+        this.editManager.applyEdits(edits);
+      });
   }
 
   getConnection() {
@@ -30,7 +49,8 @@ export class StateObserver {
     this.heartbeatGroup.addMeetCallback(callback);
   }
 
-  broadcast(message: string) {
+  sendEdits(edits: Edit<string>[]) {
+    const message = `edit: ${JSON.stringify(edits)}`;
     this.heartbeatGroup.broadcast(message);
   }
 

@@ -1,4 +1,3 @@
-import { GameFrame } from "./gameFrame";
 import { HeartbeatGroup } from "./heartbeatGroup";
 import { Project } from "./project";
 import { TabCollection } from "./tabCollection";
@@ -59,7 +58,6 @@ export class ProjectList {
 
   launchProject(project: Project) {
     this.allDiv.remove();
-    const g = new GameFrame();
-    const tc = new TabCollection(project, this.heartbeatGroup, g);
+    const tc = new TabCollection(project, this.heartbeatGroup);
   }
 }

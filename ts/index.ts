@@ -1,9 +1,5 @@
-import { GameFrame } from "./gameFrame";
 import { HeartbeatGroup } from "./heartbeatGroup";
-import { Levenshtein } from "./levenshtein";
 import { ProjectList } from "./projectList";
-import { SharedTextArea } from "./sharedTextArea";
-import { TabCollection } from "./tabCollection";
 
 const body = document.getElementsByTagName('body')[0];
 
