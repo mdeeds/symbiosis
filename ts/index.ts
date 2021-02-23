@@ -1,3 +1,4 @@
+import { Game } from "./game";
 import { HeartbeatGroup } from "./heartbeatGroup";
 import { ProjectList } from "./projectList";
 
@@ -8,7 +9,10 @@ const url = new URL(document.URL);
 const project = url.searchParams.get('project');
 const username = url.searchParams.get('login');
 
-if (!username) {
+const game = url.searchParams.get('game');
+if (game) {
+  const g = new Game(game);
+} else if (!username) {
   const loginDiv = document.createElement('div');
   body.appendChild(loginDiv);
   loginDiv.innerText = "Login: ";
@@ -33,7 +37,6 @@ if (!username) {
   }
   usernameSpan.addEventListener('keypress', updateUsername);
   usernameSpan.addEventListener('keyup', updateUsername);
-
 } else {
   const joinId = url.searchParams.get('join');
   const heartbeatGroup = new HeartbeatGroup(username, joinId);

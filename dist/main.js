@@ -1,6 +1,82 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 268:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EditManager = void 0;
+const levenshtein_1 = __webpack_require__(672);
+class EditManager {
+    constructor(textArea) {
+        this.previousContent = textArea.value;
+        this.textArea = textArea;
+    }
+    // Applies edits to text area.
+    applyEdits(edits) {
+        let selectionStart = this.textArea.selectionStart;
+        let selectionEnd = this.textArea.selectionEnd;
+        const lines = levenshtein_1.Levenshtein.splitLines(this.textArea.value);
+        levenshtein_1.Levenshtein.applyEdits(lines, edits);
+        this.textArea.value = levenshtein_1.Levenshtein.combineLines(lines);
+        this.textArea.setSelectionRange(selectionStart, selectionEnd);
+    }
+    getEdits() {
+        const edits = levenshtein_1.Levenshtein.distance(levenshtein_1.Levenshtein.splitLines(this.previousContent), levenshtein_1.Levenshtein.splitLines(this.textArea.value));
+        return edits;
+    }
+}
+exports.EditManager = EditManager;
+//# sourceMappingURL=editManager.js.map
+
+/***/ }),
+
+/***/ 417:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Game = void 0;
+const gameFrame_1 = __webpack_require__(885);
+class Game {
+    constructor(game) {
+        const req = new XMLHttpRequest();
+        req.onreadystatechange = () => {
+            if (req.readyState === 4 && req.status === 200) {
+                this.startGame(req.responseText);
+            }
+        };
+        req.open("GET", `games/game_${game}.js`);
+        req.send();
+    }
+    startGame(data) {
+        const textArea = document.createElement('div');
+        const html = data.replace(/\/\*\(\*\//g, '<span>')
+            .replace(/\/\*\)\*\//g, '</span>');
+        textArea.innerHTML = html;
+        textArea.classList.add('code');
+        for (const span of textArea.getElementsByTagName('span')) {
+            span.contentEditable = "true";
+            span.classList.add('editable');
+            span.spellcheck = false;
+        }
+        const body = document.getElementsByTagName('body')[0];
+        body.appendChild(textArea);
+        this.gameFrame = new gameFrame_1.GameFrame();
+        textArea.addEventListener('keyup', (ev) => {
+            this.gameFrame.setScript(textArea.innerText);
+        });
+        this.gameFrame.setScript(textArea.innerText);
+    }
+}
+exports.Game = Game;
+//# sourceMappingURL=game.js.map
+
+/***/ }),
+
 /***/ 885:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
@@ -14,7 +90,6 @@ class GameFrame {
         this.source = "";
         this.iFrame = document.createElement('iframe');
         this.iFrame.id = "GameFrame";
-        this.iFrame.allow = "allow-scripts";
         this.iFrame.hidden = false;
         this.setContent(this.source);
         const body = document.getElementsByTagName('body')[0];
@@ -200,13 +275,18 @@ exports.HeartbeatGroup = HeartbeatGroup;
 var __webpack_unused_export__;
 
 __webpack_unused_export__ = ({ value: true });
+const game_1 = __webpack_require__(417);
 const heartbeatGroup_1 = __webpack_require__(247);
 const projectList_1 = __webpack_require__(595);
 const body = document.getElementsByTagName('body')[0];
 const url = new URL(document.URL);
 const project = url.searchParams.get('project');
 const username = url.searchParams.get('login');
-if (!username) {
+const game = url.searchParams.get('game');
+if (game) {
+    const g = new game_1.Game(game);
+}
+else if (!username) {
     const loginDiv = document.createElement('div');
     body.appendChild(loginDiv);
     loginDiv.innerText = "Login: ";
@@ -391,7 +471,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PeerConnection = void 0;
-const peerjs_1 = __importDefault(__webpack_require__(867));
+const peerjs_1 = __importDefault(__webpack_require__(755));
 class ResolveReject {
     constructor(resolve, reject) {
         this.resolve = resolve;
@@ -603,7 +683,6 @@ exports.Project = Project;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProjectList = void 0;
-const gameFrame_1 = __webpack_require__(885);
 const project_1 = __webpack_require__(15);
 const tabCollection_1 = __webpack_require__(558);
 class ProjectList {
@@ -652,8 +731,7 @@ class ProjectList {
     }
     launchProject(project) {
         this.allDiv.remove();
-        const g = new gameFrame_1.GameFrame();
-        const tc = new tabCollection_1.TabCollection(project, this.heartbeatGroup, g);
+        const tc = new tabCollection_1.TabCollection(project, this.heartbeatGroup);
     }
 }
 exports.ProjectList = ProjectList;
@@ -886,6 +964,124 @@ exports.BoundingBox = BoundingBox;
 
 /***/ }),
 
+/***/ 230:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Shadow = void 0;
+class Shadow {
+    constructor(position) {
+        this.position = position;
+        this.img = document.createElement('img');
+        this.img.src = "Shadow.png";
+        this.img.classList.add("shadow");
+        this.img.style.setProperty('filter', `hue-rotate(${this.position.hue}turn)`);
+        const body = document.getElementsByTagName('body')[0];
+        body.appendChild(this.img);
+    }
+    setTab(tabId) {
+        this.position.tabId = tabId;
+    }
+    setCurrentTab(tabId, textArea) {
+        if (tabId === this.position.tabId) {
+            this.img.hidden = false;
+        }
+        else {
+            this.img.hidden = true;
+        }
+        this.textArea = textArea;
+    }
+    moveTo(x, y) {
+        const scrollOffset = this.textArea.scrollTop;
+        this.position.x = x;
+        this.position.y = y;
+        this.img.style.left = `${x - 20}px`;
+        this.img.style.top = `${y - scrollOffset - 20}px`;
+    }
+    updatePosition(position) {
+        this.setTab(position.tabId);
+        this.moveTo(position.x, position.y);
+    }
+    getPosition() {
+        return this.position;
+    }
+}
+exports.Shadow = Shadow;
+//# sourceMappingURL=shadow.js.map
+
+/***/ }),
+
+/***/ 717:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ShadowObserver = void 0;
+const shadow_1 = __webpack_require__(230);
+const shadowPosition_1 = __webpack_require__(315);
+class ShadowObserver {
+    constructor(heartbeatGroup) {
+        this.heartbeatGroup = heartbeatGroup;
+        this.shadows = new Map();
+        this.setupCallbacks();
+    }
+    setupCallbacks() {
+        this.heartbeatGroup.getConnection().waitReady().then((conn) => {
+            this.id = conn.id();
+            const sp = new shadowPosition_1.ShadowPosition();
+            sp.ownerId = this.id;
+            sp.hue = Math.random();
+            const shadow = new shadow_1.Shadow(sp);
+            console.log(`This id: ${this.id}`);
+            this.shadows.set(this.id, shadow);
+        });
+        this.heartbeatGroup.getConnection().addCallback("shadow: ", (serialized) => {
+            const sp = JSON.parse(serialized);
+            if (!this.shadows.has(sp.ownerId)) {
+                const shadow = new shadow_1.Shadow(sp);
+                this.shadows.set(sp.ownerId, shadow);
+            }
+            else {
+                this.shadows.get(sp.ownerId).updatePosition(sp);
+            }
+        });
+    }
+    getShadowLocalShadow() {
+        return new Promise((resolve, reject) => {
+            this.heartbeatGroup.getConnection().waitReady().then((conn) => {
+                this.id = conn.id();
+                resolve(this.shadows.get(this.id));
+            });
+        });
+    }
+    updateShadow(shadow) {
+        this.heartbeatGroup.broadcast(`shadow: ${JSON.stringify(shadow.getPosition())}`);
+        this.shadows.set(this.id, shadow);
+        // TODO: Update shadow position in tab collection...
+    }
+}
+exports.ShadowObserver = ShadowObserver;
+//# sourceMappingURL=shadowObserver.js.map
+
+/***/ }),
+
+/***/ 315:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ShadowPosition = void 0;
+class ShadowPosition {
+}
+exports.ShadowPosition = ShadowPosition;
+//# sourceMappingURL=shadowPosition.js.map
+
+/***/ }),
+
 /***/ 206:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -896,37 +1092,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SharedTextArea = void 0;
-const js_beautify_1 = __importDefault(__webpack_require__(81));
-const levenshtein_1 = __webpack_require__(672);
-class ShadowPosition {
-}
+const js_beautify_1 = __importDefault(__webpack_require__(335));
+const editManager_1 = __webpack_require__(268);
 class TextUpdate {
 }
 class SharedTextArea {
-    constructor(tabId, stateObserver, container, initialContent) {
+    constructor(tabId, stateObserver, shadowObserver, textArea) {
+        this.updateTimeout = null;
         this.tabId = tabId;
         this.stateObserver = stateObserver;
+        this.shadowObserver = shadowObserver;
+        shadowObserver.getShadowLocalShadow().then((shadow) => {
+            this.shadow = shadow;
+        });
         this.stateObserver.getConnection().waitReady().then((conn) => {
             this.id = conn.id();
-            const sp = new ShadowPosition();
-            sp.ownerId = this.id;
-            sp.hue = Math.random();
-            console.log(`This id: ${this.id}`);
-            this.shadows.set(this.id, sp);
-            this.updateShadows();
             this.div.addEventListener('mousemove', (ev) => { this.handleMove(ev); });
             this.div.addEventListener('scroll', (ev) => { this.handleMove(ev); });
         });
-        this.div = document.createElement('textarea');
-        this.div.value = initialContent;
-        this.sendCode();
-        this.shadows = new Map();
-        this.shadowImages = new Map();
+        this.div = textArea;
+        this.editManager = new editManager_1.EditManager(this.div);
         // TODO: Add line numbers
         this.div.contentEditable = "true";
         this.div.spellcheck = false;
         this.div.classList.add("sharedTextArea");
-        container.appendChild(this.div);
         this.stateObserver.getConnection().addCallback("text: ", (serialized) => {
             const update = JSON.parse(serialized);
             console.log(`Recieved ${serialized.length} bytes.`);
@@ -942,15 +1131,6 @@ class SharedTextArea {
             this.div.value = newText;
             this.div.setSelectionRange(newStart, newEnd);
         });
-        this.stateObserver.getConnection().addCallback("edit: ", (serialized) => {
-            const selectionStart = this.div.selectionStart;
-            const selectionEnd = this.div.selectionEnd;
-            const edits = JSON.parse(serialized);
-            const lines = levenshtein_1.Levenshtein.splitLines(this.div.value);
-            levenshtein_1.Levenshtein.applyEdits(lines, edits);
-            this.div.value = levenshtein_1.Levenshtein.combineLines(lines);
-            this.div.setSelectionRange(selectionStart, selectionEnd);
-        });
         this.stateObserver.addMeetCallback((peerId) => {
             const update = new TextUpdate();
             update.encodedText = btoa(this.div.value);
@@ -958,23 +1138,20 @@ class SharedTextArea {
             const message = `text: ${JSON.stringify(update)}`;
             this.stateObserver.getConnection().send(peerId, message);
         });
-        this.stateObserver.getConnection().addCallback("shadow: ", (serialized) => {
-            const shadow = JSON.parse(serialized);
-            this.shadows.set(shadow.ownerId, shadow);
-            this.updateShadows();
-        });
-        let previousText = this.div.value;
+        this.setUpEventListeners();
+    }
+    setUpEventListeners() {
         this.div.addEventListener('keyup', (ev) => {
-            if (this.div.value.length === 0 || previousText === this.div.value) {
-                return;
+            if (this.updateTimeout === null) {
+                this.updateTimeout = setTimeout(() => {
+                    const edits = this.editManager.getEdits();
+                    this.stateObserver.sendEdits(edits);
+                    this.updateTimeout = null;
+                }, 1000);
             }
-            clearTimeout(this.updateTimeout);
-            this.updateTimeout = setTimeout(() => { this.sendCode(); }, 1000);
-            const edits = levenshtein_1.Levenshtein.distance(levenshtein_1.Levenshtein.splitLines(previousText), levenshtein_1.Levenshtein.splitLines(this.div.value));
-            const message = `edit: ${JSON.stringify(edits)}`;
-            this.stateObserver.broadcast(message);
-            previousText = this.div.value;
         });
+        this.div.addEventListener('mousemove', (ev) => { this.handleMove(ev); });
+        this.div.addEventListener('scroll', (ev) => { this.handleMove(ev); });
     }
     getTabId() {
         return this.tabId;
@@ -1013,36 +1190,19 @@ class SharedTextArea {
         this.div.value = code;
     }
     handleMove(ev) {
-        const shadow = this.shadows.get(this.id);
+        if (!this.shadow) {
+            return;
+        }
         if (ev instanceof MouseEvent) {
-            shadow.x = ev.clientX;
-            shadow.y = ev.clientY + this.div.scrollTop;
+            this.shadow.moveTo(ev.clientX, ev.clientY + this.div.scrollTop);
             this.lastX = ev.clientX;
             this.lastY = ev.clientY;
+            console.log(`${ev.clientX}, ${ev.clientY}`);
         }
         else {
-            shadow.x = this.lastX;
-            shadow.y = this.lastY + this.div.scrollTop;
+            this.shadow.moveTo(this.lastX, this.lastY + this.div.scrollTop);
         }
-        this.stateObserver.broadcast(`shadow: ${JSON.stringify(shadow)}`);
-        this.updateShadows();
-    }
-    updateShadows() {
-        for (const [id, shadow] of this.shadows.entries()) {
-            if (!this.shadowImages.has(id)) {
-                console.log(`Add shadow: ${id}`);
-                const body = document.getElementsByTagName('body')[0];
-                const shadowImg = document.createElement('img');
-                shadowImg.src = "Shadow.png";
-                shadowImg.classList.add("shadow");
-                shadowImg.style.setProperty('filter', `hue-rotate(${shadow.hue}turn)`);
-                this.shadowImages.set(id, shadowImg);
-                body.appendChild(shadowImg);
-            }
-            const shadowImg = this.shadowImages.get(id);
-            shadowImg.style.left = `${shadow.x - 20}px`;
-            shadowImg.style.top = `${shadow.y - this.div.scrollTop - 20}px`;
-        }
+        this.shadowObserver.updateShadow(this.shadow);
     }
 }
 exports.SharedTextArea = SharedTextArea;
@@ -1051,16 +1211,24 @@ exports.SharedTextArea = SharedTextArea;
 /***/ }),
 
 /***/ 935:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StateObserver = void 0;
+const gameFrame_1 = __webpack_require__(885);
 class StateObserver {
-    constructor(heartbeatGroup, gameFrame) {
+    constructor(heartbeatGroup, editManager) {
         this.heartbeatGroup = heartbeatGroup;
-        this.gameFrame = gameFrame;
+        this.gameFrame = new gameFrame_1.GameFrame();
+        this.editManager = editManager;
+        heartbeatGroup.getConnection().waitReady().then((connection) => {
+            this.initialize(connection);
+        });
+    }
+    initialize(connection) {
+        this.id = connection.id();
         this.codeMap = new Map();
         const restartButton = document.createElement('div');
         restartButton.innerText = "Restart";
@@ -1070,6 +1238,10 @@ class StateObserver {
         restartButton.addEventListener('click', (ev) => {
             this.sendCode();
         });
+        this.getConnection().addCallback("edit: ", (serialized) => {
+            const edits = JSON.parse(serialized);
+            this.editManager.applyEdits(edits);
+        });
     }
     getConnection() {
         return this.heartbeatGroup.getConnection();
@@ -1077,7 +1249,8 @@ class StateObserver {
     addMeetCallback(callback) {
         this.heartbeatGroup.addMeetCallback(callback);
     }
-    broadcast(message) {
+    sendEdits(edits) {
+        const message = `edit: ${JSON.stringify(edits)}`;
         this.heartbeatGroup.broadcast(message);
     }
     sendCode() {
@@ -1098,6 +1271,41 @@ exports.StateObserver = StateObserver;
 
 /***/ }),
 
+/***/ 664:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Tab = void 0;
+const editManager_1 = __webpack_require__(268);
+const sharedTextArea_1 = __webpack_require__(206);
+const stateObserver_1 = __webpack_require__(935);
+class Tab {
+    constructor(tabId, textArea, heartbeatGroup, shadowObserver) {
+        this.tabId = tabId;
+        this.textArea = textArea;
+        this.editManager = new editManager_1.EditManager(textArea);
+        this.stateObserver = new stateObserver_1.StateObserver(heartbeatGroup, this.editManager);
+        const sta = new sharedTextArea_1.SharedTextArea(tabId, this.stateObserver, shadowObserver, this.textArea);
+    }
+    getTabId() {
+        return this.tabId;
+    }
+    activate() {
+        this.textArea.hidden = false;
+        this.tabElement.classList.add('active');
+    }
+    deactivate() {
+        this.textArea.hidden = true;
+        this.tabElement.classList.remove('active');
+    }
+}
+exports.Tab = Tab;
+//# sourceMappingURL=tab.js.map
+
+/***/ }),
+
 /***/ 558:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
@@ -1105,56 +1313,54 @@ exports.StateObserver = StateObserver;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TabCollection = void 0;
-const sharedTextArea_1 = __webpack_require__(206);
-const stateObserver_1 = __webpack_require__(935);
+const shadowObserver_1 = __webpack_require__(717);
+const tab_1 = __webpack_require__(664);
 class TabCollection {
-    constructor(project, heartbeatGroup, gameFrame) {
+    constructor(project, heartbeatGroup) {
         this.project = project;
         this.heartbeatGroup = heartbeatGroup;
-        this.gameFrame = gameFrame;
+        this.shadowObserver = new shadowObserver_1.ShadowObserver(this.heartbeatGroup);
         this.tabMap = new Map();
         const body = document.getElementsByTagName('body')[0];
-        const tabCollectionDiv = document.createElement('div');
-        tabCollectionDiv.classList.add('tabCollection');
-        body.appendChild(tabCollectionDiv);
-        const stateObserver = new stateObserver_1.StateObserver(this.heartbeatGroup, this.gameFrame);
+        this.tabCollectionDiv = document.createElement('div');
+        this.tabCollectionDiv.classList.add('tabCollection');
+        body.appendChild(this.tabCollectionDiv);
         this.buttonContainer = document.createElement('div');
         this.plus = this.createButton('+');
         this.plus.classList.remove('active');
         this.buttonContainer.classList.add('tabs');
-        tabCollectionDiv.appendChild(this.buttonContainer);
+        this.tabCollectionDiv.appendChild(this.buttonContainer);
         this.plus.addEventListener('click', (ev) => {
-            const tabId = window.performance.now().toFixed(0);
-            this.addTextArea(new sharedTextArea_1.SharedTextArea(tabId, stateObserver, tabCollectionDiv, ""));
+            this.addTextArea("");
         });
-        tabCollectionDiv.appendChild(this.buttonContainer);
+        this.tabCollectionDiv.appendChild(this.buttonContainer);
         for (const content of project.getTabContent()) {
-            const tabId = Math.random().toFixed(3);
-            this.addTextArea(new sharedTextArea_1.SharedTextArea(tabId, stateObserver, tabCollectionDiv, content));
+            this.addTextArea(content);
         }
     }
-    createButton(label) {
+    createButton(tabId) {
         const button = document.createElement('span');
-        button.innerText = label;
+        button.innerText = tabId;
         button.classList.add('tab');
         this.buttonContainer.appendChild(button);
         button.addEventListener('click', (ev) => {
-            for (const [b, sta] of this.tabMap.entries()) {
-                b.classList.remove('active');
-                sta.hide();
+            for (const [tabId, tab] of this.tabMap.entries()) {
+                tab.deactivate();
             }
-            const b = ev.target;
-            if (b !== this.plus) {
-                b.classList.add('active');
-                this.tabMap.get(b).show();
-            }
+            this.tabMap.get(tabId).activate();
         });
         return button;
     }
-    addTextArea(sta) {
-        const button = this.createButton(sta.getTabId());
-        button.classList.add('active');
-        this.tabMap.set(button, sta);
+    addTextArea(content) {
+        const tabId = Math.random().toFixed(3);
+        const textArea = document.createElement('textarea');
+        textArea.classList.add('sharedTextArea');
+        this.tabCollectionDiv.appendChild(textArea);
+        textArea.value = content;
+        const tabButton = this.createButton(tabId);
+        const tab = new tab_1.Tab(tabId, textArea, this.heartbeatGroup, this.shadowObserver);
+        tabButton.classList.add('active');
+        this.tabMap.set(tabId, tab);
     }
 }
 exports.TabCollection = TabCollection;
@@ -1162,7 +1368,7 @@ exports.TabCollection = TabCollection;
 
 /***/ }),
 
-/***/ 81:
+/***/ 335:
 /***/ ((module, exports, __webpack_require__) => {
 
 "use strict";
@@ -1235,9 +1441,9 @@ function get_beautify(js_beautify, css_beautify, html_beautify) {
 if (true) {
   // Add support for AMD ( https://github.com/amdjs/amdjs-api/wiki/AMD#defineamd-property- )
   !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-    __webpack_require__(395),
-    __webpack_require__(820),
-    __webpack_require__(187)
+    __webpack_require__(746),
+    __webpack_require__(425),
+    __webpack_require__(775)
   ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(js_beautify, css_beautify, html_beautify) {
     return get_beautify(js_beautify, css_beautify, html_beautify);
   }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
@@ -1246,7 +1452,7 @@ if (true) {
 
 /***/ }),
 
-/***/ 820:
+/***/ 425:
 /***/ ((module, exports) => {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* AUTO-GENERATED. DO NOT MODIFY. */
@@ -2926,7 +3132,7 @@ if (true) {
 
 /***/ }),
 
-/***/ 187:
+/***/ 775:
 /***/ ((module, exports, __webpack_require__) => {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* AUTO-GENERATED. DO NOT MODIFY. */
@@ -6083,9 +6289,9 @@ var style_html = legacy_beautify_html;
 /* Footer */
 if (true) {
     // Add support for AMD ( https://github.com/amdjs/amdjs-api/wiki/AMD#defineamd-property- )
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__, __webpack_require__(395), __webpack_require__(820)], __WEBPACK_AMD_DEFINE_RESULT__ = (function(requireamd) {
-        var js_beautify = __webpack_require__(395);
-        var css_beautify = __webpack_require__(820);
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__, __webpack_require__(746), __webpack_require__(425)], __WEBPACK_AMD_DEFINE_RESULT__ = (function(requireamd) {
+        var js_beautify = __webpack_require__(746);
+        var css_beautify = __webpack_require__(425);
 
         return {
             html_beautify: function(html_source, options) {
@@ -6101,7 +6307,7 @@ if (true) {
 
 /***/ }),
 
-/***/ 395:
+/***/ 746:
 /***/ ((module, exports) => {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* AUTO-GENERATED. DO NOT MODIFY. */
@@ -10169,10 +10375,10 @@ if (true) {
 
 /***/ }),
 
-/***/ 867:
+/***/ 755:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-parcelRequire=function(e,r,t,n){var i,o="function"==typeof parcelRequire&&parcelRequire,u=undefined;function f(t,n){if(!r[t]){if(!e[t]){var i="function"==typeof parcelRequire&&parcelRequire;if(!n&&i)return i(t,!0);if(o)return o(t,!0);if( true&&"string"==typeof t)return __webpack_require__(279)(t);var c=new Error("Cannot find module '"+t+"'");throw c.code="MODULE_NOT_FOUND",c}p.resolve=function(r){return e[t][1][r]||r},p.cache={};var l=r[t]=new f.Module(t);e[t][0].call(l.exports,p,l,l.exports,this)}return r[t].exports;function p(e){return f(p.resolve(e))}}f.isParcelRequire=!0,f.Module=function(e){this.id=e,this.bundle=f,this.exports={}},f.modules=e,f.cache=r,f.parent=o,f.register=function(r,t){e[r]=[function(e,r){r.exports=t},{}]};for(var c=0;c<t.length;c++)try{f(t[c])}catch(e){i||(i=e)}if(t.length){var l=f(t[t.length-1]); true?module.exports=l:0}if(parcelRequire=f,i)throw i;return f}({"EgBh":[function(require,module,exports) {
+parcelRequire=function(e,r,t,n){var i,o="function"==typeof parcelRequire&&parcelRequire,u=undefined;function f(t,n){if(!r[t]){if(!e[t]){var i="function"==typeof parcelRequire&&parcelRequire;if(!n&&i)return i(t,!0);if(o)return o(t,!0);if( true&&"string"==typeof t)return __webpack_require__(516)(t);var c=new Error("Cannot find module '"+t+"'");throw c.code="MODULE_NOT_FOUND",c}p.resolve=function(r){return e[t][1][r]||r},p.cache={};var l=r[t]=new f.Module(t);e[t][0].call(l.exports,p,l,l.exports,this)}return r[t].exports;function p(e){return f(p.resolve(e))}}f.isParcelRequire=!0,f.Module=function(e){this.id=e,this.bundle=f,this.exports={}},f.modules=e,f.cache=r,f.parent=o,f.register=function(r,t){e[r]=[function(e,r){r.exports=t},{}]};for(var c=0;c<t.length;c++)try{f(t[c])}catch(e){i||(i=e)}if(t.length){var l=f(t[t.length-1]); true?module.exports=l:0}if(parcelRequire=f,i)throw i;return f}({"EgBh":[function(require,module,exports) {
 var e={};e.useBlobBuilder=function(){try{return new Blob([]),!1}catch(e){return!0}}(),e.useArrayBufferView=!e.useBlobBuilder&&function(){try{return 0===new Blob([new Uint8Array([])]).size}catch(e){return!0}}(),module.exports.binaryFeatures=e;var r=module.exports.BlobBuilder;function t(){this._pieces=[],this._parts=[]}"undefined"!=typeof window&&(r=module.exports.BlobBuilder=window.WebKitBlobBuilder||window.MozBlobBuilder||window.MSBlobBuilder||window.BlobBuilder),t.prototype.append=function(e){"number"==typeof e?this._pieces.push(e):(this.flush(),this._parts.push(e))},t.prototype.flush=function(){if(this._pieces.length>0){var r=new Uint8Array(this._pieces);e.useArrayBufferView||(r=r.buffer),this._parts.push(r),this._pieces=[]}},t.prototype.getBuffer=function(){if(this.flush(),e.useBlobBuilder){for(var t=new r,i=0,u=this._parts.length;i<u;i++)t.append(this._parts[i]);return t.getBlob()}return new Blob(this._parts)},module.exports.BufferBuilder=t;
 },{}],"kdPp":[function(require,module,exports) {
 var t=require("./bufferbuilder").BufferBuilder,e=require("./bufferbuilder").binaryFeatures,i={unpack:function(t){return new r(t).unpack()},pack:function(t){var e=new n;return e.pack(t),e.getBuffer()}};function r(t){this.index=0,this.dataBuffer=t,this.dataView=new Uint8Array(this.dataBuffer),this.length=this.dataBuffer.byteLength}function n(){this.bufferBuilder=new t}function u(t){var e=t.charCodeAt(0);return e<=2047?"00":e<=65535?"000":e<=2097151?"0000":e<=67108863?"00000":"000000"}function a(t){return t.length>600?new Blob([t]).size:t.replace(/[^\u0000-\u007F]/g,u).length}module.exports=i,r.prototype.unpack=function(){var t,e=this.unpack_uint8();if(e<128)return e;if((224^e)<32)return(224^e)-32;if((t=160^e)<=15)return this.unpack_raw(t);if((t=176^e)<=15)return this.unpack_string(t);if((t=144^e)<=15)return this.unpack_array(t);if((t=128^e)<=15)return this.unpack_map(t);switch(e){case 192:return null;case 193:return;case 194:return!1;case 195:return!0;case 202:return this.unpack_float();case 203:return this.unpack_double();case 204:return this.unpack_uint8();case 205:return this.unpack_uint16();case 206:return this.unpack_uint32();case 207:return this.unpack_uint64();case 208:return this.unpack_int8();case 209:return this.unpack_int16();case 210:return this.unpack_int32();case 211:return this.unpack_int64();case 212:case 213:case 214:case 215:return;case 216:return t=this.unpack_uint16(),this.unpack_string(t);case 217:return t=this.unpack_uint32(),this.unpack_string(t);case 218:return t=this.unpack_uint16(),this.unpack_raw(t);case 219:return t=this.unpack_uint32(),this.unpack_raw(t);case 220:return t=this.unpack_uint16(),this.unpack_array(t);case 221:return t=this.unpack_uint32(),this.unpack_array(t);case 222:return t=this.unpack_uint16(),this.unpack_map(t);case 223:return t=this.unpack_uint32(),this.unpack_map(t)}},r.prototype.unpack_uint8=function(){var t=255&this.dataView[this.index];return this.index++,t},r.prototype.unpack_uint16=function(){var t=this.read(2),e=256*(255&t[0])+(255&t[1]);return this.index+=2,e},r.prototype.unpack_uint32=function(){var t=this.read(4),e=256*(256*(256*t[0]+t[1])+t[2])+t[3];return this.index+=4,e},r.prototype.unpack_uint64=function(){var t=this.read(8),e=256*(256*(256*(256*(256*(256*(256*t[0]+t[1])+t[2])+t[3])+t[4])+t[5])+t[6])+t[7];return this.index+=8,e},r.prototype.unpack_int8=function(){var t=this.unpack_uint8();return t<128?t:t-256},r.prototype.unpack_int16=function(){var t=this.unpack_uint16();return t<32768?t:t-65536},r.prototype.unpack_int32=function(){var t=this.unpack_uint32();return t<Math.pow(2,31)?t:t-Math.pow(2,32)},r.prototype.unpack_int64=function(){var t=this.unpack_uint64();return t<Math.pow(2,63)?t:t-Math.pow(2,64)},r.prototype.unpack_raw=function(t){if(this.length<this.index+t)throw new Error("BinaryPackFailure: index is out of range "+this.index+" "+t+" "+this.length);var e=this.dataBuffer.slice(this.index,this.index+t);return this.index+=t,e},r.prototype.unpack_string=function(t){for(var e,i,r=this.read(t),n=0,u="";n<t;)(e=r[n])<128?(u+=String.fromCharCode(e),n++):(192^e)<32?(i=(192^e)<<6|63&r[n+1],u+=String.fromCharCode(i),n+=2):(i=(15&e)<<12|(63&r[n+1])<<6|63&r[n+2],u+=String.fromCharCode(i),n+=3);return this.index+=t,u},r.prototype.unpack_array=function(t){for(var e=new Array(t),i=0;i<t;i++)e[i]=this.unpack();return e},r.prototype.unpack_map=function(t){for(var e={},i=0;i<t;i++){var r=this.unpack(),n=this.unpack();e[r]=n}return e},r.prototype.unpack_float=function(){var t=this.unpack_uint32(),e=(t>>23&255)-127;return(0===t>>31?1:-1)*(8388607&t|8388608)*Math.pow(2,e-23)},r.prototype.unpack_double=function(){var t=this.unpack_uint32(),e=this.unpack_uint32(),i=(t>>20&2047)-1023;return(0===t>>31?1:-1)*((1048575&t|1048576)*Math.pow(2,i-20)+e*Math.pow(2,i-52))},r.prototype.read=function(t){var e=this.index;if(e+t<=this.length)return this.dataView.subarray(e,e+t);throw new Error("BinaryPackFailure: read index out of range")},n.prototype.getBuffer=function(){return this.bufferBuilder.getBuffer()},n.prototype.pack=function(t){var i=typeof t;if("string"===i)this.pack_string(t);else if("number"===i)Math.floor(t)===t?this.pack_integer(t):this.pack_double(t);else if("boolean"===i)!0===t?this.bufferBuilder.append(195):!1===t&&this.bufferBuilder.append(194);else if("undefined"===i)this.bufferBuilder.append(192);else{if("object"!==i)throw new Error('Type "'+i+'" not yet supported');if(null===t)this.bufferBuilder.append(192);else{var r=t.constructor;if(r==Array)this.pack_array(t);else if(r==Blob||r==File||t instanceof Blob||t instanceof File)this.pack_bin(t);else if(r==ArrayBuffer)e.useArrayBufferView?this.pack_bin(new Uint8Array(t)):this.pack_bin(t);else if("BYTES_PER_ELEMENT"in t)e.useArrayBufferView?this.pack_bin(new Uint8Array(t.buffer)):this.pack_bin(t.buffer);else if(r==Object||r.toString().startsWith("class"))this.pack_object(t);else if(r==Date)this.pack_string(t.toString());else{if("function"!=typeof t.toBinaryPack)throw new Error('Type "'+r.toString()+'" not yet supported');this.bufferBuilder.append(t.toBinaryPack())}}}this.bufferBuilder.flush()},n.prototype.pack_bin=function(t){var e=t.length||t.byteLength||t.size;if(e<=15)this.pack_uint8(160+e);else if(e<=65535)this.bufferBuilder.append(218),this.pack_uint16(e);else{if(!(e<=4294967295))throw new Error("Invalid length");this.bufferBuilder.append(219),this.pack_uint32(e)}this.bufferBuilder.append(t)},n.prototype.pack_string=function(t){var e=a(t);if(e<=15)this.pack_uint8(176+e);else if(e<=65535)this.bufferBuilder.append(216),this.pack_uint16(e);else{if(!(e<=4294967295))throw new Error("Invalid length");this.bufferBuilder.append(217),this.pack_uint32(e)}this.bufferBuilder.append(t)},n.prototype.pack_array=function(t){var e=t.length;if(e<=15)this.pack_uint8(144+e);else if(e<=65535)this.bufferBuilder.append(220),this.pack_uint16(e);else{if(!(e<=4294967295))throw new Error("Invalid length");this.bufferBuilder.append(221),this.pack_uint32(e)}for(var i=0;i<e;i++)this.pack(t[i])},n.prototype.pack_integer=function(t){if(t>=-32&&t<=127)this.bufferBuilder.append(255&t);else if(t>=0&&t<=255)this.bufferBuilder.append(204),this.pack_uint8(t);else if(t>=-128&&t<=127)this.bufferBuilder.append(208),this.pack_int8(t);else if(t>=0&&t<=65535)this.bufferBuilder.append(205),this.pack_uint16(t);else if(t>=-32768&&t<=32767)this.bufferBuilder.append(209),this.pack_int16(t);else if(t>=0&&t<=4294967295)this.bufferBuilder.append(206),this.pack_uint32(t);else if(t>=-2147483648&&t<=2147483647)this.bufferBuilder.append(210),this.pack_int32(t);else if(t>=-0x8000000000000000&&t<=0x8000000000000000)this.bufferBuilder.append(211),this.pack_int64(t);else{if(!(t>=0&&t<=0x10000000000000000))throw new Error("Invalid integer");this.bufferBuilder.append(207),this.pack_uint64(t)}},n.prototype.pack_double=function(t){var e=0;t<0&&(e=1,t=-t);var i=Math.floor(Math.log(t)/Math.LN2),r=t/Math.pow(2,i)-1,n=Math.floor(r*Math.pow(2,52)),u=Math.pow(2,32),a=e<<31|i+1023<<20|n/u&1048575,p=n%u;this.bufferBuilder.append(203),this.pack_int32(a),this.pack_int32(p)},n.prototype.pack_object=function(t){var e=Object.keys(t).length;if(e<=15)this.pack_uint8(128+e);else if(e<=65535)this.bufferBuilder.append(222),this.pack_uint16(e);else{if(!(e<=4294967295))throw new Error("Invalid length");this.bufferBuilder.append(223),this.pack_uint32(e)}for(var i in t)t.hasOwnProperty(i)&&(this.pack(i),this.pack(t[i]))},n.prototype.pack_uint8=function(t){this.bufferBuilder.append(t)},n.prototype.pack_uint16=function(t){this.bufferBuilder.append(t>>8),this.bufferBuilder.append(255&t)},n.prototype.pack_uint32=function(t){var e=4294967295&t;this.bufferBuilder.append((4278190080&e)>>>24),this.bufferBuilder.append((16711680&e)>>>16),this.bufferBuilder.append((65280&e)>>>8),this.bufferBuilder.append(255&e)},n.prototype.pack_uint64=function(t){var e=t/Math.pow(2,32),i=t%Math.pow(2,32);this.bufferBuilder.append((4278190080&e)>>>24),this.bufferBuilder.append((16711680&e)>>>16),this.bufferBuilder.append((65280&e)>>>8),this.bufferBuilder.append(255&e),this.bufferBuilder.append((4278190080&i)>>>24),this.bufferBuilder.append((16711680&i)>>>16),this.bufferBuilder.append((65280&i)>>>8),this.bufferBuilder.append(255&i)},n.prototype.pack_int8=function(t){this.bufferBuilder.append(255&t)},n.prototype.pack_int16=function(t){this.bufferBuilder.append((65280&t)>>8),this.bufferBuilder.append(255&t)},n.prototype.pack_int32=function(t){this.bufferBuilder.append(t>>>24&255),this.bufferBuilder.append((16711680&t)>>>16),this.bufferBuilder.append((65280&t)>>>8),this.bufferBuilder.append(255&t)},n.prototype.pack_int64=function(t){var e=Math.floor(t/Math.pow(2,32)),i=t%Math.pow(2,32);this.bufferBuilder.append((4278190080&e)>>>24),this.bufferBuilder.append((16711680&e)>>>16),this.bufferBuilder.append((65280&e)>>>8),this.bufferBuilder.append(255&e),this.bufferBuilder.append((4278190080&i)>>>24),this.bufferBuilder.append((16711680&i)>>>16),this.bufferBuilder.append((65280&i)>>>8),this.bufferBuilder.append(255&i)};
@@ -10245,7 +10451,7 @@ var t=require("./bufferbuilder").BufferBuilder,e=require("./bufferbuilder").bina
 
 /***/ }),
 
-/***/ 279:
+/***/ 516:
 /***/ ((module) => {
 
 function webpackEmptyContext(req) {
@@ -10255,7 +10461,7 @@ function webpackEmptyContext(req) {
 }
 webpackEmptyContext.keys = () => [];
 webpackEmptyContext.resolve = webpackEmptyContext;
-webpackEmptyContext.id = 279;
+webpackEmptyContext.id = 516;
 module.exports = webpackEmptyContext;
 
 /***/ })

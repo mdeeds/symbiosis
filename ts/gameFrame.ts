@@ -6,7 +6,6 @@ export class GameFrame {
   constructor() {
     this.iFrame = document.createElement('iframe');
     this.iFrame.id = "GameFrame";
-    this.iFrame.allow = "allow-scripts";
     this.iFrame.hidden = false;
     this.setContent(this.source);
     const body = document.getElementsByTagName('body')[0];

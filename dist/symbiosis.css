@@ -61,9 +61,9 @@ span {
 #GameFrame {
   position: absolute;
   width: calc(50vw);
-  height: calc(0.618 * 50vw);
+  height: 99vh;
   right: 0px;
-  top: 24px;
+  top: 0px;
   background: linear-gradient(#ddffff, #ffaa99);
   border-radius: 2vw;
   box-shadow: 0 0 0.5vw #fff;
@@ -110,4 +110,37 @@ span {
   padding: 15px;
   margin: 15px;
   background-color: #ffffff22;
+}
+
+.code {
+  position: absolute;
+  width: 49vw;
+  left: 0;
+  top:0;
+  height: 99vh;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #fff0;
+  color: lightgray;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.editable {
+  border-radius: 3px;
+  border: solid #4ff 1px;
+  padding: 0.5px;
+  margin: 1px;
+  color: white;
+}
+
+.button {
+  background-color: gray;
+  border: outset 3px solid grey;
+  padding: 5px;
+  margin: 5px;
+  color: black;
+}
+
+.button.hover {
+  background-color: lightgray;
 }
