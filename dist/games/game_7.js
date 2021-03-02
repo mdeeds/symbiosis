@@ -58,8 +58,8 @@ function makeCanvas() {
   canvas.width = /*(*/10/*)*/;
   canvas.height = /*(*/10/*)*/;
   canvas.style.setProperty('image-rendering', 'pixelated');
-  canvas.style.setProperty('width', '400px');
-  canvas.style.setProperty('height', '400px');
+  canvas.style.setProperty('width', '100vw');
+  canvas.style.setProperty('height', '100vw');
   body.appendChild(canvas);
 
   const pixelData = new Uint8ClampedArray(4 * canvas.width * canvas.height);
