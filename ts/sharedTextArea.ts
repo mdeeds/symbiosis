@@ -1,4 +1,6 @@
+import { rejects } from "assert";
 import beautify from "js-beautify";
+import { resolve } from "path";
 import { EditManager } from "./editManager";
 import { Shadow } from "./shadow";
 import { ShadowObserver } from "./shadowObserver";
@@ -12,59 +14,66 @@ class TextUpdate {
 
 export class SharedTextArea {
   private id: string;
-  private div: HTMLTextAreaElement;
+  private textArea: HTMLTextAreaElement;
   private updateTimeout: NodeJS.Timeout = null;
   private tabId: string;
   private stateObserver: StateObserver;
   private editManager: EditManager;
   private shadowObserver: ShadowObserver;
   private shadow: Shadow;
+  private shadowCallbacks: Function[];
   constructor(tabId: string, stateObserver: StateObserver,
     shadowObserver: ShadowObserver,
     textArea: HTMLTextAreaElement) {
     this.tabId = tabId;
     this.stateObserver = stateObserver;
     this.shadowObserver = shadowObserver;
+    this.shadowCallbacks = [];
+    // TODO: Because this is initially undefined, we have a problem showing it
+    // later.
     shadowObserver.getShadowLocalShadow().then((shadow) => {
       this.shadow = shadow;
+      for (const cb of this.shadowCallbacks) {
+        cb(this.shadow);
+      }
     });
     this.stateObserver.getConnection().waitReady().then(
       (conn) => {
         this.id = conn.id();
-        this.div.addEventListener('mousemove',
+        this.textArea.addEventListener('mousemove',
           (ev) => { this.handleMove(ev); });
-        this.div.addEventListener('scroll',
+        this.textArea.addEventListener('scroll',
           (ev) => { this.handleMove(ev); })
       });
-    this.div = textArea;
-    this.editManager = new EditManager(this.div);
+    this.textArea = textArea;
+    this.editManager = new EditManager(this.textArea);
     // TODO: Add line numbers
-    this.div.contentEditable = "true";
-    this.div.spellcheck = false;
-    this.div.classList.add("sharedTextArea");
+    this.textArea.contentEditable = "true";
+    this.textArea.spellcheck = false;
+    this.textArea.classList.add("sharedTextArea");
 
     this.stateObserver.getConnection().addCallback("text: ",
       (serialized: string) => {
         const update: TextUpdate = JSON.parse(serialized) as TextUpdate;
         console.log(`Recieved ${serialized.length} bytes.`);
         const newText = atob(update.encodedText);
-        const oldText = this.div.value;
+        const oldText = this.textArea.value;
         const charsAdded = newText.length - oldText.length;
-        const insertBefore = this.div.selectionStart > update.sourcePosition;
-        const newStart = this.div.selectionStart + (insertBefore ? charsAdded : 0);
-        const newEnd = this.div.selectionEnd + (insertBefore ? charsAdded : 0);
+        const insertBefore = this.textArea.selectionStart > update.sourcePosition;
+        const newStart = this.textArea.selectionStart + (insertBefore ? charsAdded : 0);
+        const newEnd = this.textArea.selectionEnd + (insertBefore ? charsAdded : 0);
         console.log(`Delta: ${charsAdded}, `
-          + `this position: ${this.div.selectionStart}, `
+          + `this position: ${this.textArea.selectionStart}, `
           + `incoming position: ${update.sourcePosition}`);
-        this.div.value = newText;
-        this.div.setSelectionRange(newStart, newEnd);
+        this.textArea.value = newText;
+        this.textArea.setSelectionRange(newStart, newEnd);
       }
     )
 
     this.stateObserver.addMeetCallback((peerId: string) => {
       const update = new TextUpdate();
-      update.encodedText = btoa(this.div.value);
-      update.sourcePosition = this.div.selectionStart;
+      update.encodedText = btoa(this.textArea.value);
+      update.sourcePosition = this.textArea.selectionStart;
       const message = `text: ${JSON.stringify(update)}`;
       this.stateObserver.getConnection().send(peerId, message);
     })
@@ -72,8 +81,18 @@ export class SharedTextArea {
     this.setUpEventListeners();
   }
 
+  private readyShadow(): Promise<Shadow> {
+    return new Promise((resolve, reject) => {
+      if (this.shadow) {
+        resolve(this.shadow);
+      } else {
+        this.shadowCallbacks.push(resolve);
+      }
+    });
+  }
+
   setUpEventListeners() {
-    this.div.addEventListener('keyup', (ev) => {
+    this.textArea.addEventListener('keyup', (ev) => {
       if (this.updateTimeout === null) {
         this.updateTimeout = setTimeout(() => {
           const edits = this.editManager.getEdits();
@@ -82,8 +101,8 @@ export class SharedTextArea {
         }, 1000);
       }
     });
-    this.div.addEventListener('mousemove', (ev) => { this.handleMove(ev); });
-    this.div.addEventListener('scroll', (ev) => { this.handleMove(ev); })
+    this.textArea.addEventListener('mousemove', (ev) => { this.handleMove(ev); });
+    this.textArea.addEventListener('scroll', (ev) => { this.handleMove(ev); })
   }
 
   getTabId(): string {
@@ -91,15 +110,18 @@ export class SharedTextArea {
   }
 
   show() {
-    this.div.hidden = false;
+    this.textArea.hidden = false;
+    this.readyShadow().then((shadow) => {
+      shadow.setCurrentTab(this.tabId, this.textArea);
+    });
   }
 
   hide() {
-    this.div.hidden = true;
+    this.textArea.hidden = true;
   }
 
   sendCode() {
-    const code = this.div.value;
+    const code = this.textArea.value;
     console.log(`Uploading ${code.length} bytes.`);
     this.stateObserver.setScript(this.tabId, code);
     // TODO: Send code back to project.
@@ -107,7 +129,7 @@ export class SharedTextArea {
 
   // TODO add format button.
   format() {
-    const code = beautify(this.div.value, {
+    const code = beautify(this.textArea.value, {
       "indent_size": 2,
       "indent_char": " ",
       "max_preserve_newlines": 1,
@@ -124,7 +146,7 @@ export class SharedTextArea {
       "e4x": false,
       "indent_empty_lines": false
     });
-    this.div.value = code;
+    this.textArea.value = code;
   }
 
   private lastX: number;
@@ -134,12 +156,11 @@ export class SharedTextArea {
       return;
     }
     if (ev instanceof MouseEvent) {
-      this.shadow.moveTo(ev.clientX, ev.clientY + this.div.scrollTop);
+      this.shadow.moveTo(ev.clientX, ev.clientY + this.textArea.scrollTop);
       this.lastX = ev.clientX;
       this.lastY = ev.clientY;
-      console.log(`${ev.clientX}, ${ev.clientY}`);
     } else {
-      this.shadow.moveTo(this.lastX, this.lastY + this.div.scrollTop);
+      this.shadow.moveTo(this.lastX, this.lastY + this.textArea.scrollTop);
     }
     this.shadowObserver.updateShadow(this.shadow);
   }

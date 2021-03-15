@@ -23,13 +23,21 @@ export class PeerConnection {
   private readyCallbacks: Function[];
 
   constructor(id: string) {
-    this.peer = new Peer(id);
+    console.log(`Establishing peer ${id}`);
+    // https://github.com/peers/peerjs-server
+    // peerjs --port 9000 --key peerjs --path /
+    this.peer = new Peer(id, { host: '/', port: 9000 });
+    // Go here to start the host:
+    // https://ivory-python-8wtvfdje.ws-us03.gitpod.io/#/workspace/peerjs-server
+    // this.peer = new Peer(
+    //   id, { host: '9000-ivory-python-8wtvfdje.ws-us03.gitpod.io' });
     this.peers = new Map<string, DataConnection>();
     this.responses = new Map<number, ResolveReject>();
     this.callbacks = new Map<string, Function>();
     this.ready = false;
     this.readyCallbacks = [];
     this.peer.on('open', (id: string) => {
+      console.log(`My id: ${id}`);
       this.ready = true;
       for (const readyCallback of this.readyCallbacks) {
         readyCallback(this);

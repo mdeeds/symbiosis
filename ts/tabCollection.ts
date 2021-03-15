@@ -8,6 +8,7 @@ export class TabCollection {
   private tabCollectionDiv: HTMLDivElement;
   private plus: HTMLSpanElement;
   private tabMap: Map<string, Tab>;
+  private tabList: Tab[];
 
   private project: Project;
   private heartbeatGroup: HeartbeatGroup;
@@ -21,6 +22,7 @@ export class TabCollection {
     this.heartbeatGroup = heartbeatGroup;
     this.shadowObserver = new ShadowObserver(this.heartbeatGroup);
     this.tabMap = new Map<string, Tab>();
+    this.tabList = [];
 
     const body = document.getElementsByTagName('body')[0];
     this.tabCollectionDiv = document.createElement('div');
@@ -34,13 +36,27 @@ export class TabCollection {
     this.tabCollectionDiv.appendChild(this.buttonContainer);
 
     this.plus.addEventListener('click', (ev) => {
-      this.addTextArea("");
+      const newTab = this.addTextArea("");
+      this.selectTab(newTab.getTabId());
     });
 
     this.tabCollectionDiv.appendChild(this.buttonContainer);
 
     for (const content of project.getTabContent()) {
       this.addTextArea(content);
+    }
+    if (this.tabList.length > 0) {
+      this.selectTab(this.tabList[0].getTabId());
+    }
+  }
+
+  private selectTab(tabId: string) {
+    for (const t of this.tabList) {
+      if (t.getTabId() === tabId) {
+        t.activate();
+      } else {
+        t.deactivate();
+      }
     }
   }
 
@@ -50,15 +66,12 @@ export class TabCollection {
     button.classList.add('tab');
     this.buttonContainer.appendChild(button);
     button.addEventListener('click', (ev: MouseEvent) => {
-      for (const [tabId, tab] of this.tabMap.entries()) {
-        tab.deactivate();
-      }
-      this.tabMap.get(tabId).activate();
+      this.selectTab(tabId);
     });
     return button
   }
 
-  addTextArea(content: string) {
+  addTextArea(content: string): Tab {
     const tabId = Math.random().toFixed(3);
     const textArea = document.createElement('textarea');
     textArea.classList.add('sharedTextArea');
@@ -69,5 +82,7 @@ export class TabCollection {
       tabId, textArea, this.heartbeatGroup, this.shadowObserver);
     tabButton.classList.add('active');
     this.tabMap.set(tabId, tab);
+    this.tabList.push(tab);
+    return tab;
   }
 }

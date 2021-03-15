@@ -7,19 +7,20 @@ import { StateObserver } from "./stateObserver";
 
 export class Tab {
   private tabId: string;
-  private tabElement: HTMLSpanElement;
   private textArea: HTMLTextAreaElement;
   private stateObserver: StateObserver;
   private editManager: EditManager;
+  private sharedTextArea: SharedTextArea;
 
   constructor(tabId: string, textArea: HTMLTextAreaElement,
     heartbeatGroup: HeartbeatGroup,
     shadowObserver: ShadowObserver) {
+    console.assert(textArea, "Text area required.");
     this.tabId = tabId;
     this.textArea = textArea;
     this.editManager = new EditManager(textArea);
     this.stateObserver = new StateObserver(heartbeatGroup, this.editManager);
-    const sta = new SharedTextArea(
+    this.sharedTextArea = new SharedTextArea(
       tabId, this.stateObserver, shadowObserver, this.textArea);
   }
 
@@ -28,12 +29,13 @@ export class Tab {
   }
 
   activate() {
+    console.log("Activate");
     this.textArea.hidden = false;
-    this.tabElement.classList.add('active');
+    this.sharedTextArea.show();
   }
 
   deactivate() {
     this.textArea.hidden = true;
-    this.tabElement.classList.remove('active');
+    this.sharedTextArea.hide();
   }
 }

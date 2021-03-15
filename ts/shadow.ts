@@ -30,6 +30,10 @@ export class Shadow {
   }
 
   moveTo(x: number, y: number) {
+    if (!this.textArea) {
+      console.log("No text area.");
+      return;
+    }
     const scrollOffset = this.textArea.scrollTop;
     this.position.x = x;
     this.position.y = y;
