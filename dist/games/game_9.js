@@ -17,7 +17,7 @@ function updateState(canvas) {
     if (dx !== 0 || dy !== 0) {
       const j = i + dx + dy * canvas.width;
       const other = state[j];
-      if (current === kZombie && Math.random() < 0.8) {
+      if (current === kZombie && Math.random() < /*(*/0.8/*)*/) {
         continue;
       }
       if (current === kHuman) {
@@ -113,11 +113,11 @@ function makeCanvas() {
   state = new Int16Array(canvas.width * canvas.height);
   for (let i = 0; i < state.length; ++i) {
     let r = Math.random();
-    if (r < 0.05) {
+    if (r < /*(*/0.05/*)*/) {
       state[i] = kHuman;
-    } else if (r < 0.051) {
+    } else if (r < /*(*/0.051/*)*/) {
       state[i] = kZombie;
-    } else if (r < 0.06) {
+    } else if (r < /*(*/0.06/*)*/) {
       state[i] = kCure;
     }
   }
