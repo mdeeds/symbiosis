@@ -28,26 +28,26 @@ function makePuzzle(container, message, answer) {
 
 function instruction(container, message) {
   const div = document.createElement('div');
-  div.style.fontSize = '12px';
+  div.style.fontSize = '20px';
   div.style.margin = '8px';
   div.innerText = message;
+  container.appendChild(div);
 }
-
 function main() {
   const body = document.getElementsByTagName('body')[0];
-  instruction("Addition and subtraction work just like you learn in school.");
+  instruction(body, "Addition and subtraction work just like you learn in school.");
   makePuzzle(body, "1+2", 1 + 2);
   makePuzzle(body, "1 + 2 * 3", 1 + 2 * 3);
   makePuzzle(body, "(1 + 2) * 3", (1 + 2) * 3);
 
-  instruction("Computers think of 'true' as 1, and 'false' as zero.")
+  instruction(body, "Computers think of 'true' as 1, and 'false' as zero.")
   makePuzzle(body, "true", true);
   makePuzzle(body, "false", false);
   makePuzzle(body, "false || true", false || true);
   makePuzzle(body, "false && true", false && true);
 
 
-  instruction("Bonus puzzle:  The modulus operator (%) is the remainder "
+  instruction(body, "Bonus puzzle:  The modulus operator (%) is the remainder "
     + "of a division problem.  7 / 2 = 3 R 1, so 7 % 2 = 1")
   makePuzzle(body, "7 % 2", 7 % 2);
   makePuzzle(body, "11 % 4", 11 % 4);

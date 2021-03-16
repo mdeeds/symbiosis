@@ -28,15 +28,16 @@ function makePuzzle(container, message, answer) {
 
 function instruction(container, message) {
   const div = document.createElement('div');
-  div.style.fontSize = '12px';
+  div.style.fontSize = '20px';
   div.style.margin = '8px';
   div.innerText = message;
+  container.appendChild(div);
 }
 
 function main() {
   const body = document.getElementsByTagName('body')[0];
 
-  instruction("Binary means two options.  In computers, these are one and "
+  instruction(body, "Binary means two options.  In computers, these are one and "
     + "zero, or true and false.  In JavaScript, we write a number "
     + "in binary by putting 0b in front of it.");
   makePuzzle(body, "0b0", 0b0);
@@ -44,7 +45,7 @@ function main() {
   makePuzzle(body, "0b10", 0b10);
   makePuzzle(body, "0b11", 0b11);
 
-  instruction("Decimal is the name of the numbers that we are used to. "
+  instruction(body, "Decimal is the name of the numbers that we are used to. "
     + "Decimal comes from the latin word 'decimus' which means 'tenth'.  "
     + "When counting the numbers start over every tenth number.  From 9 "
     + "we wrap back around to 10.");

@@ -17,6 +17,9 @@ function updateState(canvas) {
     if (dx !== 0 || dy !== 0) {
       const j = i + dx + dy * canvas.width;
       const other = state[j];
+      if (current === kZombie && Math.random() < 0.8) {
+        continue;
+      }
       if (current === kHuman) {
         if (other === kEmpty) {
           state[j] = kHuman;
