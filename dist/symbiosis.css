@@ -129,7 +129,7 @@ span {
 .editable {
   border-radius: 3px;
   border: solid #4ff 1px;
-  padding: 0.5px;
+  padding: 2px;
   margin: 1px;
   color: white;
 }

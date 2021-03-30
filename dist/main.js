@@ -62,6 +62,9 @@ class Game {
             span.contentEditable = "true";
             span.classList.add('editable');
             span.spellcheck = false;
+            if (span.innerText.indexOf('\n') >= 0) {
+                span.style.setProperty('display', 'block');
+            }
         }
         const body = document.getElementsByTagName('body')[0];
         body.appendChild(textArea);
@@ -229,6 +232,7 @@ class HeartbeatGroup {
         return this.username;
     }
     broadcast(message) {
+        console.log(`AAAAA Others: ${this.healthMap.size}`);
         for (const [other, health] of this.healthMap.entries()) {
             if (health != null && !health.isHealthy()) {
                 continue;
@@ -240,13 +244,12 @@ class HeartbeatGroup {
     }
     sendToLeader(message) {
         if (!this.leaderId) {
+            console.log(`AAAAA: There is no leader.`);
         }
         return this.connection.sendAndPromiseResponse(this.leaderId, message);
     }
     makeThump() {
-        if (this.connection.id() === null) {
-            return;
-        }
+        console.assert(this.connection.id() !== null, "Connection is not active.");
         const otherList = [`${this.connection.id()}=${this.username}`];
         this.healthMap.get(this.connection.id()).update();
         for (const [peerId, healthStatus] of this.healthMap) {
@@ -278,12 +281,17 @@ __webpack_unused_export__ = ({ value: true });
 const game_1 = __webpack_require__(417);
 const heartbeatGroup_1 = __webpack_require__(247);
 const projectList_1 = __webpack_require__(595);
+const test_1 = __webpack_require__(4);
 const body = document.getElementsByTagName('body')[0];
 const url = new URL(document.URL);
 const project = url.searchParams.get('project');
 const username = url.searchParams.get('login');
 const game = url.searchParams.get('game');
-if (game) {
+const test = url.searchParams.get('test');
+if (test) {
+    const t = new test_1.Test();
+}
+else if (game) {
     const g = new game_1.Game(game);
 }
 else if (!username) {
@@ -609,6 +617,99 @@ class PeerConnection {
 }
 exports.PeerConnection = PeerConnection;
 //# sourceMappingURL=peerConnection.js.map
+
+/***/ }),
+
+/***/ 205:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PeerGroup = void 0;
+const peerjs_1 = __importDefault(__webpack_require__(755));
+class PeerGroup {
+    constructor(joinId = null) {
+        this.id = null;
+        this.readyCallback = [];
+        this.knownIds = new Map();
+        // https://github.com/peers/peerjs-server
+        // peerjs --port 9000 --key peerjs --path /
+        // this.peer = new Peer(id, { host: '/', port: 9000 });
+        // Go here to start the host:
+        // https://ivory-python-8wtvfdje.ws-us03.gitpod.io/#/workspace/peerjs-server
+        // this.peer = new Peer(
+        //   id, { host: '9000-ivory-python-8wtvfdje.ws-us03.gitpod.io' });
+        this.conn = new peerjs_1.default(null, {});
+        this.conn.on('open', (id) => {
+            this.id = id;
+            if (joinId) {
+                this.meet(joinId);
+            }
+            for (const cb of this.readyCallback) {
+                cb(id);
+            }
+        });
+        this.conn.on('connection', (conn) => { this.onConnection(conn); });
+        this.conn.on('disconnected', () => {
+            setTimeout(() => { this.conn.reconnect(); }, 5000);
+        });
+    }
+    static make(joinId = null) {
+        return new Promise((resolve, reject) => {
+            const result = new PeerGroup(joinId);
+            result.getId().then(() => {
+                resolve(result);
+            });
+        });
+    }
+    meet(id) {
+        console.log(this.conn.connections);
+        if (!this.knownIds.has(id)) {
+            this.conn.connect(id);
+        }
+    }
+    getId() {
+        if (this.id) {
+            return new Promise((resolve, reject) => { resolve(this.id); });
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                this.readyCallback.push(resolve);
+            });
+        }
+    }
+    // Called when someone establishes a new connection with us.
+    onConnection(conn) {
+        console.log(`${this.id}: connection from ${conn.peer}`);
+        conn.on('data', (data) => { this.onData(conn.peer, data); });
+        if (!this.knownIds.has(conn.peer)) {
+            this.broadcast(`meet: ${conn.peer}`);
+            this.knownIds.set(conn.peer, conn);
+        }
+        // TODO: Broadcast the new peer.
+    }
+    onData(fromId, data) {
+        console.log(`onData: ${data}`);
+        const reMessage = /([^:]+):(.*)/;
+        const match = data.match(reMessage);
+    }
+    // Called when we lose a connection with someone
+    onClose(id) {
+        this.knownIds.delete(id);
+    }
+    broadcast(message) {
+        for (const conn of this.knownIds.values()) {
+            console.log(`${this.id}: to ${conn.peer}`);
+            conn.send(message);
+        }
+    }
+}
+exports.PeerGroup = PeerGroup;
+//# sourceMappingURL=peerGroup.js.map
 
 /***/ }),
 
@@ -1051,6 +1152,7 @@ class ShadowObserver {
             this.shadows.set(this.id, shadow);
         });
         this.heartbeatGroup.getConnection().addCallback("shadow: ", (serialized) => {
+            console.log(`AAAAA Got: ${serialized}`);
             const sp = JSON.parse(serialized);
             if (!this.shadows.has(sp.ownerId)) {
                 const shadow = new shadow_1.Shadow(sp);
@@ -1070,6 +1172,7 @@ class ShadowObserver {
         });
     }
     updateShadow(shadow) {
+        console.log(`AAAAA: send`);
         this.heartbeatGroup.broadcast(`shadow: ${JSON.stringify(shadow.getPosition())}`);
         this.shadows.set(this.id, shadow);
         // TODO: Update shadow position in tab collection...
@@ -1411,6 +1514,42 @@ class TabCollection {
 }
 exports.TabCollection = TabCollection;
 //# sourceMappingURL=tabCollection.js.map
+
+/***/ }),
+
+/***/ 4:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Test = void 0;
+const peerGroup_1 = __webpack_require__(205);
+class Test {
+    constructor() {
+        this.start();
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const pg1 = yield peerGroup_1.PeerGroup.make();
+            const joinId = yield pg1.getId();
+            console.log(`Join id: ${joinId}`);
+            const pg2 = yield peerGroup_1.PeerGroup.make(joinId);
+            pg2.broadcast("Hello");
+        });
+    }
+}
+exports.Test = Test;
+//# sourceMappingURL=test.js.map
 
 /***/ }),
 
