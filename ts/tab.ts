@@ -1,5 +1,5 @@
 import { EditManager } from "./editManager";
-import { HeartbeatGroup } from "./heartbeatGroup";
+import { PeerGroup } from "./peerGroup";
 import { Shadow } from "./shadow";
 import { ShadowObserver } from "./shadowObserver";
 import { SharedTextArea } from "./sharedTextArea";
@@ -13,13 +13,13 @@ export class Tab {
   private sharedTextArea: SharedTextArea;
 
   constructor(tabId: string, textArea: HTMLTextAreaElement,
-    heartbeatGroup: HeartbeatGroup,
+    peerGroup: PeerGroup,
     shadowObserver: ShadowObserver) {
     console.assert(textArea, "Text area required.");
     this.tabId = tabId;
     this.textArea = textArea;
     this.editManager = new EditManager(textArea);
-    this.stateObserver = new StateObserver(heartbeatGroup, this.editManager);
+    this.stateObserver = new StateObserver(peerGroup, this.editManager);
     this.sharedTextArea = new SharedTextArea(
       tabId, this.stateObserver, shadowObserver, this.textArea);
   }

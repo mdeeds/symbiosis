@@ -1,4 +1,4 @@
-import { HeartbeatGroup } from "./heartbeatGroup";
+import { PeerGroup } from "./peerGroup";
 import { Project } from "./project";
 import { ShadowObserver } from "./shadowObserver";
 import { Tab } from "./tab";
@@ -11,16 +11,16 @@ export class TabCollection {
   private tabList: Tab[];
 
   private project: Project;
-  private heartbeatGroup: HeartbeatGroup;
+  private peerGroup: PeerGroup;
   private id: string;
   private currentTabId: string;
   private shadowObserver: ShadowObserver;
 
   constructor(project: Project,
-    heartbeatGroup: HeartbeatGroup) {
+    peerGroup: PeerGroup) {
     this.project = project;
-    this.heartbeatGroup = heartbeatGroup;
-    this.shadowObserver = new ShadowObserver(this.heartbeatGroup);
+    this.peerGroup = peerGroup;
+    this.shadowObserver = new ShadowObserver(this.peerGroup);
     this.tabMap = new Map<string, Tab>();
     this.tabList = [];
 
@@ -79,7 +79,7 @@ export class TabCollection {
     textArea.value = content;
     const tabButton = this.createButton(tabId);
     const tab = new Tab(
-      tabId, textArea, this.heartbeatGroup, this.shadowObserver);
+      tabId, textArea, this.peerGroup, this.shadowObserver);
     tabButton.classList.add('active');
     this.tabMap.set(tabId, tab);
     this.tabList.push(tab);

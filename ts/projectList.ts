@@ -1,4 +1,4 @@
-import { HeartbeatGroup } from "./heartbeatGroup";
+import { PeerGroup } from "./peerGroup";
 import { Project } from "./project";
 import { TabCollection } from "./tabCollection";
 
@@ -7,10 +7,10 @@ export class ProjectList {
   private projectNames: string[];
   private allDiv: HTMLDivElement;
   private listDiv: HTMLDivElement;
-  private heartbeatGroup: HeartbeatGroup;
+  private peerGroup: PeerGroup;
 
-  constructor(heartbeatGroup: HeartbeatGroup) {
-    this.heartbeatGroup = heartbeatGroup;
+  constructor(peerGroup: PeerGroup) {
+    this.peerGroup = peerGroup;
     this.projects = [];
     this.projectNames = [];
     const body = document.getElementsByTagName('body')[0];
@@ -58,6 +58,6 @@ export class ProjectList {
 
   launchProject(project: Project) {
     this.allDiv.remove();
-    const tc = new TabCollection(project, this.heartbeatGroup);
+    const tc = new TabCollection(project, this.peerGroup);
   }
 }

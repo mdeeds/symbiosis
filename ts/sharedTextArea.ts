@@ -37,14 +37,14 @@ export class SharedTextArea {
         cb(this.shadow);
       }
     });
-    this.stateObserver.getConnection().waitReady().then(
-      (conn) => {
-        this.id = conn.id();
-        this.textArea.addEventListener('mousemove',
-          (ev) => { this.handleMove(ev); });
-        this.textArea.addEventListener('scroll',
-          (ev) => { this.handleMove(ev); })
-      });
+    // this.stateObserver.getConnection().waitReady().then(
+    //   (conn) => {
+    //     this.id = conn.id();
+    //     this.textArea.addEventListener('mousemove',
+    //       (ev) => { this.handleMove(ev); });
+    //     this.textArea.addEventListener('scroll',
+    //       (ev) => { this.handleMove(ev); })
+    //   });
     this.textArea = textArea;
     this.editManager = new EditManager(this.textArea);
     // TODO: Add line numbers
@@ -52,31 +52,31 @@ export class SharedTextArea {
     this.textArea.spellcheck = false;
     this.textArea.classList.add("sharedTextArea");
 
-    this.stateObserver.getConnection().addCallback("text: ",
-      (serialized: string) => {
-        const update: TextUpdate = JSON.parse(serialized) as TextUpdate;
-        console.log(`Recieved ${serialized.length} bytes.`);
-        const newText = atob(update.encodedText);
-        const oldText = this.textArea.value;
-        const charsAdded = newText.length - oldText.length;
-        const insertBefore = this.textArea.selectionStart > update.sourcePosition;
-        const newStart = this.textArea.selectionStart + (insertBefore ? charsAdded : 0);
-        const newEnd = this.textArea.selectionEnd + (insertBefore ? charsAdded : 0);
-        console.log(`Delta: ${charsAdded}, `
-          + `this position: ${this.textArea.selectionStart}, `
-          + `incoming position: ${update.sourcePosition}`);
-        this.textArea.value = newText;
-        this.textArea.setSelectionRange(newStart, newEnd);
-      }
-    )
+    // this.stateObserver.getConnection().addCallback("text: ",
+    //   (serialized: string) => {
+    //     const update: TextUpdate = JSON.parse(serialized) as TextUpdate;
+    //     console.log(`Recieved ${serialized.length} bytes.`);
+    //     const newText = atob(update.encodedText);
+    //     const oldText = this.textArea.value;
+    //     const charsAdded = newText.length - oldText.length;
+    //     const insertBefore = this.textArea.selectionStart > update.sourcePosition;
+    //     const newStart = this.textArea.selectionStart + (insertBefore ? charsAdded : 0);
+    //     const newEnd = this.textArea.selectionEnd + (insertBefore ? charsAdded : 0);
+    //     console.log(`Delta: ${charsAdded}, `
+    //       + `this position: ${this.textArea.selectionStart}, `
+    //       + `incoming position: ${update.sourcePosition}`);
+    //     this.textArea.value = newText;
+    //     this.textArea.setSelectionRange(newStart, newEnd);
+    //   }
+    // )
 
-    this.stateObserver.addMeetCallback((peerId: string) => {
-      const update = new TextUpdate();
-      update.encodedText = btoa(this.textArea.value);
-      update.sourcePosition = this.textArea.selectionStart;
-      const message = `text: ${JSON.stringify(update)}`;
-      this.stateObserver.getConnection().send(peerId, message);
-    })
+    // this.stateObserver.addMeetCallback((peerId: string) => {
+    //   const update = new TextUpdate();
+    //   update.encodedText = btoa(this.textArea.value);
+    //   update.sourcePosition = this.textArea.selectionStart;
+    //   const message = `text: ${JSON.stringify(update)}`;
+    //   this.stateObserver.getConnection().send(peerId, message);
+    // })
 
     this.setUpEventListeners();
   }
