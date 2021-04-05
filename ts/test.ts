@@ -37,6 +37,9 @@ export class Test {
       });
     const id2 = await pg2.getId();
     box.add(`ID2: ${id2}`, 'white');
+    pg2.addCallback('meet', (message) => {
+      box.add(`MEEEEEEETing '${message}'`, 'lightgreen')
+    });
 
     const pg3 = await PeerGroup.make(joinId,
       (ev: string, id: string, data: string) => {

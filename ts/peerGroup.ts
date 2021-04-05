@@ -1,5 +1,7 @@
 import Peer, { DataConnection } from "peerjs";
 
+type NamedCallbackFn = (data: string) => void;
+
 export class PeerGroup {
   static make(joinId: string = null, callback: Function = null)
     : Promise<PeerGroup> {
@@ -20,6 +22,8 @@ export class PeerGroup {
   private id: string = null;
   private readyCallback: Function[] = [];
   private dataCallbacks: Function[] = [];
+  private namedCallbacks: Map<string, NamedCallbackFn> =
+    new Map<string, NamedCallbackFn>();
 
   private constructor(joinId: string = null) {
     // https://github.com/peers/peerjs-server
@@ -68,6 +72,10 @@ export class PeerGroup {
     }
   }
 
+  addCallback(name: string, f: NamedCallbackFn) {
+    this.namedCallbacks.set(name, f);
+  }
+
   private addDataCallback(f: Function) {
     this.dataCallbacks.push(f);
   }
@@ -75,6 +83,19 @@ export class PeerGroup {
   private runCallbacks(ev: string, id: string, data: string) {
     for (const f of this.dataCallbacks) {
       f(ev, id, data);
+    }
+    if (ev === 'data') {
+      const reName = /^([^:]+): (.*)$/;
+      const match = data.match(reName);
+      if (match && match.length > 0) {
+        const name = match[1];
+        const message = match[2];
+        if (this.namedCallbacks.has(name)) {
+          const fn = this.namedCallbacks.get(name);
+          fn(message);
+          return;
+        }
+      }
     }
   }
 
@@ -89,8 +110,6 @@ export class PeerGroup {
   }
 
   broadcast(message: string) {
-    this.runCallbacks('broadcast', '',
-      `${message} x${this.peers.size}`);
     for (const [id, conn] of this.peers) {
       if (id === this.conn.id) {
         continue;
