@@ -1,4 +1,3 @@
-import { PeerConnection } from "./peerConnection";
 import { PeerGroup } from "./peerGroup";
 
 class Box {

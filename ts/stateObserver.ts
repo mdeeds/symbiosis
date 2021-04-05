@@ -1,7 +1,6 @@
 import { EditManager } from "./editManager";
 import { GameFrame } from "./gameFrame";
 import { Edit } from "./levenshtein";
-import { PeerConnection } from "./peerConnection";
 import { PeerGroup } from "./peerGroup";
 
 export class StateObserver {
@@ -21,25 +20,25 @@ export class StateObserver {
     // })
   }
 
-  initialize(connection: PeerConnection) {
-    //   this.id = connection.id();
-    //   this.codeMap = new Map<string, string>();
+  // initialize(connection: PeerConnection) {
+  //   this.id = connection.id();
+  //   this.codeMap = new Map<string, string>();
 
-    //   const restartButton = document.createElement('div');
-    //   restartButton.innerText = "Restart";
-    //   restartButton.id = "Restart";
-    //   const body = document.getElementsByTagName('body')[0];
-    //   body.appendChild(restartButton);
-    //   restartButton.addEventListener('click', (ev) => {
-    //     this.sendCode();
-    //   });
+  //   const restartButton = document.createElement('div');
+  //   restartButton.innerText = "Restart";
+  //   restartButton.id = "Restart";
+  //   const body = document.getElementsByTagName('body')[0];
+  //   body.appendChild(restartButton);
+  //   restartButton.addEventListener('click', (ev) => {
+  //     this.sendCode();
+  //   });
 
-    //   this.getConnection().addCallback("edit: ",
-    //     (serialized: string) => {
-    //       const edits: Edit<string>[] = JSON.parse(serialized);
-    //       this.editManager.applyEdits(edits);
-    //     });
-  }
+  //   this.getConnection().addCallback("edit: ",
+  //     (serialized: string) => {
+  //       const edits: Edit<string>[] = JSON.parse(serialized);
+  //       this.editManager.applyEdits(edits);
+  //     });
+  // }
 
   // getConnection() {
   //   return this.peerGroup.getConnection();
