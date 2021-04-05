@@ -1,6 +1,19 @@
 import Peer, { DataConnection } from "peerjs";
 
 export class PeerGroup {
+  static make(joinId: string = null, callback: Function = null)
+    : Promise<PeerGroup> {
+    return new Promise((resolve, reject) => {
+      const result = new PeerGroup(joinId);
+      if (callback) {
+        result.addDataCallback(callback);
+      }
+      result.getId().then(() => {
+        resolve(result);
+      });
+    });
+  }
+
   private conn: Peer;
   private peers
     : Map<string, DataConnection> = new Map<string, DataConnection>();
@@ -48,14 +61,14 @@ export class PeerGroup {
     });
   }
 
-  setAndIntroduce(id: string, conn: DataConnection) {
+  private setAndIntroduce(id: string, conn: DataConnection) {
     if (!this.peers.has(id)) {
       this.broadcast(`meet: ${id}`);
       this.peers.set(id, conn);
     }
   }
 
-  addCallback(f: Function) {
+  private addDataCallback(f: Function) {
     this.dataCallbacks.push(f);
   }
 
@@ -63,19 +76,6 @@ export class PeerGroup {
     for (const f of this.dataCallbacks) {
       f(ev, id, data);
     }
-  }
-
-  static make(joinId: string = null, callback: Function = null)
-    : Promise<PeerGroup> {
-    return new Promise((resolve, reject) => {
-      const result = new PeerGroup(joinId);
-      if (callback) {
-        result.addCallback(callback);
-      }
-      result.getId().then(() => {
-        resolve(result);
-      });
-    });
   }
 
   getId(): Promise<string> {
@@ -104,7 +104,7 @@ export class PeerGroup {
     }
   }
 
-  meet(joinId: string) {
+  private meet(joinId: string) {
     const masterConnection = this.conn.connect(joinId);
     masterConnection.on('open', () => {
       this.runCallbacks('open', joinId, '');
@@ -116,7 +116,7 @@ export class PeerGroup {
     this.setAndIntroduce(joinId, masterConnection);
   }
 
-  handleData(data: string) {
+  private handleData(data: string) {
     const keyPhrase = 'meet: ';
     if (data.startsWith(keyPhrase)) {
       const id = data.substr(keyPhrase.length);
