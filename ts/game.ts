@@ -24,6 +24,9 @@ export class Game {
       span.contentEditable = "true";
       span.classList.add('editable');
       span.spellcheck = false;
+      if (span.innerText.indexOf('\n') >= 0) {
+        span.style.setProperty('display', 'block');
+      }
     }
     const body = document.getElementsByTagName('body')[0];
     body.appendChild(textArea);
