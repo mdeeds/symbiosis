@@ -130,221 +130,92 @@ exports.GameFrame = GameFrame;
 
 /***/ }),
 
-/***/ 247:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HeartbeatGroup = void 0;
-const peerConnection_1 = __webpack_require__(955);
-class PeerHealth {
-    constructor(peerId, username, container) {
-        this.peerId = peerId;
-        this.username = username;
-        this.statusElement = document.createElement('div');
-        this.statusElement.innerText = `♡ ${username}`;
-        this.statusElement.classList.add('pulse');
-        container.appendChild(this.statusElement);
-        this.healthy = true;
-        this.update();
-    }
-    update() {
-        this.lastPingTime = window.performance.now();
-        this.statusElement.innerText = `♡ ${this.username}`;
-        this.healthy = true;
-        this.statusElement.classList.remove('pulse');
-        setTimeout(() => { this.statusElement.classList.add('pulse'); }, 10);
-        if (this.deathTimer) {
-            clearTimeout(this.deathTimer);
-        }
-        this.deathTimer = setTimeout(() => this.die(), 10000);
-    }
-    die() {
-        this.statusElement.innerText = `🕱 ${this.username}`;
-        this.healthy = false;
-    }
-    isHealthy() {
-        return this.healthy;
-    }
-}
-class HeartbeatGroup {
-    constructor(username, joinId = null) {
-        this.username = username;
-        this.connection = new peerConnection_1.PeerConnection(null);
-        this.healthMap = new Map();
-        this.meetCallbacks = [];
-        this.status = document.createElement('div');
-        this.status.innerText = "Status";
-        this.status.classList.add("status");
-        this.connection.waitReady().then(() => {
-            this.healthMap.set(this.connection.id(), new PeerHealth(this.connection.id(), username, this.status));
-            if (joinId) {
-                const thumpMessage = this.makeThump();
-                this.connection.send(joinId, thumpMessage);
-            }
-            this.beat();
-        });
-        if (joinId) {
-            this.leaderId = joinId;
-            this.healthMap.set(joinId, null);
-            this.leader = false;
-        }
-        else {
-            this.leader = true;
-        }
-        document.getElementsByTagName('body')[0].appendChild(this.status);
-        this.connection.addCallback("thump: ", (peers) => {
-            const peerKVs = peers.split(',');
-            for (let i = 0; i < peerKVs.length; ++i) {
-                const peerKV = peerKVs[i];
-                let peerUser;
-                let peerId;
-                [peerId, peerUser] = peerKV.split('=');
-                if (peerId === this.getConnection().id()) {
-                    continue;
-                }
-                if (!this.healthMap.has(peerId) ||
-                    this.healthMap.get(peerId) === null) {
-                    this.healthMap.set(peerId, new PeerHealth(peerId, peerUser, this.status));
-                    for (const c of this.meetCallbacks) {
-                        c(peerId);
-                    }
-                }
-                else {
-                    if (i === 0) {
-                        this.healthMap.get(peerId).update();
-                    }
-                }
-            }
-        });
-    }
-    addMeetCallback(callback) {
-        this.meetCallbacks.push(callback);
-    }
-    isLeader() {
-        return this.leader;
-    }
-    getConnection() {
-        return this.connection;
-    }
-    getUsername() {
-        return this.username;
-    }
-    broadcast(message) {
-        console.log(`AAAAA Others: ${this.healthMap.size}`);
-        for (const [other, health] of this.healthMap.entries()) {
-            if (health != null && !health.isHealthy()) {
-                continue;
-            }
-            if (other !== this.connection.id()) {
-                this.connection.send(other, message);
-            }
-        }
-    }
-    sendToLeader(message) {
-        if (!this.leaderId) {
-            console.log(`AAAAA: There is no leader.`);
-        }
-        return this.connection.sendAndPromiseResponse(this.leaderId, message);
-    }
-    makeThump() {
-        console.assert(this.connection.id() !== null, "Connection is not active.");
-        const otherList = [`${this.connection.id()}=${this.username}`];
-        this.healthMap.get(this.connection.id()).update();
-        for (const [peerId, healthStatus] of this.healthMap) {
-            if (healthStatus === null || peerId == this.connection.id()) {
-                continue;
-            }
-            otherList.push(`${peerId}=${healthStatus.username}`);
-        }
-        return `thump: ${otherList.join(',')}`;
-    }
-    beat() {
-        const thumpMessage = this.makeThump();
-        this.broadcast(thumpMessage);
-        setTimeout(() => this.beat(), 600);
-    }
-}
-exports.HeartbeatGroup = HeartbeatGroup;
-//# sourceMappingURL=heartbeatGroup.js.map
-
-/***/ }),
-
 /***/ 138:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
-var __webpack_unused_export__;
 
-__webpack_unused_export__ = ({ value: true });
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 const game_1 = __webpack_require__(417);
-const heartbeatGroup_1 = __webpack_require__(247);
+const peerGroup_1 = __webpack_require__(205);
 const projectList_1 = __webpack_require__(595);
 const test_1 = __webpack_require__(4);
-const body = document.getElementsByTagName('body')[0];
-const url = new URL(document.URL);
-const project = url.searchParams.get('project');
-const username = url.searchParams.get('login');
-const game = url.searchParams.get('game');
-const test = url.searchParams.get('test');
-if (test) {
-    const t = new test_1.Test();
-}
-else if (game) {
-    const g = new game_1.Game(game);
-}
-else if (!username) {
-    const loginDiv = document.createElement('div');
-    body.appendChild(loginDiv);
-    loginDiv.innerText = "Login: ";
-    const usernameSpan = document.createElement('span');
-    usernameSpan.spellcheck = false;
-    usernameSpan.innerText = " ";
-    loginDiv.appendChild(usernameSpan);
-    usernameSpan.contentEditable = "true";
-    const forward = document.createElement('a');
-    body.appendChild(forward);
-    const updateUsername = () => {
-        const loginName = usernameSpan.innerText.trim();
-        if (loginName.match(/^[A-Za-z][A-Za-z0-9]+$/)) {
-            const newUrl = new URL(url.href);
-            newUrl.searchParams.append("login", loginName);
-            forward.href = newUrl.href;
-            forward.innerText = "Let's go!";
+function initialize() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const body = document.getElementsByTagName('body')[0];
+        const url = new URL(document.URL);
+        const project = url.searchParams.get('project');
+        const username = url.searchParams.get('login');
+        const game = url.searchParams.get('game');
+        const test = url.searchParams.get('test');
+        if (test) {
+            const t = new test_1.Test();
+        }
+        else if (game) {
+            const g = new game_1.Game(game);
+        }
+        else if (!username) {
+            const loginDiv = document.createElement('div');
+            body.appendChild(loginDiv);
+            loginDiv.innerText = "Login: ";
+            const usernameSpan = document.createElement('span');
+            usernameSpan.spellcheck = false;
+            usernameSpan.innerText = " ";
+            loginDiv.appendChild(usernameSpan);
+            usernameSpan.contentEditable = "true";
+            const forward = document.createElement('a');
+            body.appendChild(forward);
+            const updateUsername = () => {
+                const loginName = usernameSpan.innerText.trim();
+                if (loginName.match(/^[A-Za-z][A-Za-z0-9]+$/)) {
+                    const newUrl = new URL(url.href);
+                    newUrl.searchParams.append("login", loginName);
+                    forward.href = newUrl.href;
+                    forward.innerText = "Let's go!";
+                }
+                else {
+                    forward.href = "";
+                    forward.innerText = "";
+                }
+            };
+            usernameSpan.addEventListener('keypress', updateUsername);
+            usernameSpan.addEventListener('keyup', updateUsername);
         }
         else {
-            forward.href = "";
-            forward.innerText = "";
+            const joinId = url.searchParams.get('join');
+            const peerGroup = yield peerGroup_1.PeerGroup.make(joinId, (a, b, c) => { console.log(`${a}@${b}:${c}`); });
+            const p = new projectList_1.ProjectList(peerGroup);
+            const joinDiv = document.createElement('div');
+            joinDiv.id = "joinDiv";
+            joinDiv.innerText = "Establishing connection...";
+            body.appendChild(joinDiv);
+            if (joinId) {
+                const joinUrl = new URL(document.URL);
+                joinUrl.searchParams.set('join', joinId);
+                joinUrl.searchParams.delete('login');
+                joinDiv.innerText = joinUrl.href;
+            }
+            else {
+                const joinUrl = new URL(document.URL);
+                const id = yield peerGroup.getId();
+                joinUrl.searchParams.set('join', id);
+                joinUrl.searchParams.delete('login');
+                joinDiv.innerText = joinUrl.href;
+            }
         }
-    };
-    usernameSpan.addEventListener('keypress', updateUsername);
-    usernameSpan.addEventListener('keyup', updateUsername);
+        // const b = new SharedTextArea(heartbeatGroup, g);
+    });
 }
-else {
-    const joinId = url.searchParams.get('join');
-    const heartbeatGroup = new heartbeatGroup_1.HeartbeatGroup(username, joinId);
-    const p = new projectList_1.ProjectList(heartbeatGroup);
-    const joinDiv = document.createElement('div');
-    joinDiv.id = "joinDiv";
-    joinDiv.innerText = "Establishing connection...";
-    body.appendChild(joinDiv);
-    if (joinId) {
-        const joinUrl = new URL(document.URL);
-        joinUrl.searchParams.set('join', joinId);
-        joinUrl.searchParams.delete('login');
-        joinDiv.innerText = joinUrl.href;
-    }
-    else {
-        heartbeatGroup.getConnection().waitReady().then((conn) => {
-            const joinUrl = new URL(document.URL);
-            joinUrl.searchParams.set('join', conn.id());
-            joinUrl.searchParams.delete('login');
-            joinDiv.innerText = joinUrl.href;
-        });
-    }
-    // const b = new SharedTextArea(heartbeatGroup, g);
-}
+initialize();
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -460,166 +331,6 @@ exports.Levenshtein = Levenshtein;
 
 /***/ }),
 
-/***/ 955:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PeerConnection = void 0;
-const peerjs_1 = __importDefault(__webpack_require__(755));
-class ResolveReject {
-    constructor(resolve, reject) {
-        this.resolve = resolve;
-        this.reject = reject;
-        this.timeout = setTimeout(() => {
-            reject("Deadline exceeded.");
-        }, 5000);
-    }
-}
-class PeerConnection {
-    constructor(id) {
-        console.log(`Establishing peer ${id}`);
-        // https://github.com/peers/peerjs-server
-        // peerjs --port 9000 --key peerjs --path /
-        this.peer = new peerjs_1.default(id, { host: '/', port: 9000 });
-        // Go here to start the host:
-        // https://ivory-python-8wtvfdje.ws-us03.gitpod.io/#/workspace/peerjs-server
-        // this.peer = new Peer(
-        //   id, { host: '9000-ivory-python-8wtvfdje.ws-us03.gitpod.io' });
-        this.peers = new Map();
-        this.responses = new Map();
-        this.callbacks = new Map();
-        this.ready = false;
-        this.readyCallbacks = [];
-        this.peer.on('open', (id) => {
-            console.log(`My id: ${id}`);
-            this.ready = true;
-            for (const readyCallback of this.readyCallbacks) {
-                readyCallback(this);
-            }
-        });
-        this.peer.on('connection', (conn) => {
-            conn.on('data', (data) => {
-                // First check if this is a timestamped response that we asked for.
-                const m = data.match(/<(\d+)<(.*)/);
-                if (m !== null) {
-                    const timestamp = parseInt(m[1]);
-                    if (this.responses.has(timestamp)) {
-                        const rr = this.responses.get(timestamp);
-                        clearTimeout(rr.timeout);
-                        this.responses.delete(timestamp);
-                        rr.resolve(m[2]);
-                    }
-                    else {
-                    }
-                    return;
-                }
-                // Check if this is a timestamped request from someone.  We will
-                // need to use this timestamp on the reply.
-                const m2 = data.match(/>(\d+)>(.*)/);
-                let responseTag = '';
-                if (m2 !== null) {
-                    const timestamp = parseInt(m2[1]);
-                    data = m2[2];
-                    responseTag = `<${timestamp}<`;
-                }
-                if (this.callbacks.has(data)) {
-                    const responseMessage = this.callbacks.get(data)();
-                    if (responseMessage instanceof Promise) {
-                        responseMessage.then((message) => {
-                            this.send(conn.peer, responseTag + message);
-                        });
-                    }
-                    else {
-                        this.send(conn.peer, responseTag + responseMessage);
-                    }
-                }
-                else {
-                    for (const prefix of this.callbacks.keys()) {
-                        if (data.startsWith(prefix)) {
-                            const value = data.substr(prefix.length);
-                            const response = this.callbacks.get(prefix)(value);
-                            if (response) {
-                                this.send(conn.peer, responseTag + response);
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    }
-    waitReady() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return new Promise((resolve, reject) => {
-                if (this.ready) {
-                    resolve(this);
-                }
-                else {
-                    this.readyCallbacks.push(resolve);
-                }
-            });
-        });
-    }
-    id() {
-        return this.peer.id;
-    }
-    addCallback(keyPhrase, callback) {
-        this.callbacks.set(keyPhrase, callback);
-    }
-    send(targetId, message) {
-        if (targetId === this.id()) {
-            return;
-        }
-        let messageSent = false;
-        if (this.peers.has(targetId)) {
-            const conn = this.peers.get(targetId);
-            if (conn.open) {
-                conn.send(message);
-                messageSent = true;
-            }
-            else {
-            }
-        }
-        if (!messageSent) {
-            const conn = this.peer.connect(targetId);
-            this.peers.set(targetId, conn);
-            conn.on('open', () => {
-                conn.send(message);
-            });
-        }
-    }
-    sendAndPromiseResponse(targetId, message) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const timestamp = Math.trunc(window.performance.now());
-            this.waitReady()
-                .then(() => {
-                this.send(targetId, `>${timestamp.toFixed(0)}>${message}`);
-            });
-            return new Promise((resolve, reject) => {
-                const rr = new ResolveReject(resolve, reject);
-                this.responses.set(timestamp, rr);
-            });
-        });
-    }
-}
-exports.PeerConnection = PeerConnection;
-//# sourceMappingURL=peerConnection.js.map
-
-/***/ }),
-
 /***/ 205:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -633,9 +344,11 @@ exports.PeerGroup = void 0;
 const peerjs_1 = __importDefault(__webpack_require__(755));
 class PeerGroup {
     constructor(joinId = null) {
+        this.peers = new Map();
         this.id = null;
         this.readyCallback = [];
-        this.knownIds = new Map();
+        this.dataCallbacks = [];
+        this.namedCallbacks = new Map();
         // https://github.com/peers/peerjs-server
         // peerjs --port 9000 --key peerjs --path /
         // this.peer = new Peer(id, { host: '/', port: 9000 });
@@ -645,6 +358,7 @@ class PeerGroup {
         //   id, { host: '9000-ivory-python-8wtvfdje.ws-us03.gitpod.io' });
         this.conn = new peerjs_1.default(null, {});
         this.conn.on('open', (id) => {
+            this.runCallbacks('open', id, '');
             this.id = id;
             if (joinId) {
                 this.meet(joinId);
@@ -653,23 +367,65 @@ class PeerGroup {
                 cb(id);
             }
         });
-        this.conn.on('connection', (conn) => { this.onConnection(conn); });
+        this.conn.on('connection', (conn) => {
+            this.runCallbacks('connection', conn.peer, '');
+            if (!conn.open) {
+                conn.on('open', () => {
+                    this.setAndIntroduce(conn.peer, conn);
+                });
+            }
+            else {
+                this.setAndIntroduce(conn.peer, conn);
+            }
+            conn.on('data', (data) => {
+                this.runCallbacks('data', conn.peer, data);
+                this.handleData(data);
+            });
+        });
         this.conn.on('disconnected', () => {
+            this.runCallbacks('disconnected', '', '');
             setTimeout(() => { this.conn.reconnect(); }, 5000);
         });
     }
-    static make(joinId = null) {
+    static make(joinId = null, callback = null) {
         return new Promise((resolve, reject) => {
             const result = new PeerGroup(joinId);
+            if (callback) {
+                result.addDataCallback(callback);
+            }
             result.getId().then(() => {
                 resolve(result);
             });
         });
     }
-    meet(id) {
-        console.log(this.conn.connections);
-        if (!this.knownIds.has(id)) {
-            this.conn.connect(id);
+    setAndIntroduce(id, conn) {
+        if (!this.peers.has(id)) {
+            this.broadcast(`meet: ${id}`);
+            this.peers.set(id, conn);
+        }
+    }
+    addCallback(name, f) {
+        this.namedCallbacks.set(name, f);
+    }
+    addDataCallback(f) {
+        this.dataCallbacks.push(f);
+    }
+    runCallbacks(ev, id, data) {
+        for (const f of this.dataCallbacks) {
+            f(ev, id, data);
+        }
+        if (ev === 'data') {
+            const reName = /^([^:]+): (.*)$/;
+            const match = data.match(reName);
+            if (match && match.length > 0) {
+                const name = match[1];
+                const message = match[2];
+                if (this.namedCallbacks.has(name)) {
+                    const fn = this.namedCallbacks.get(name);
+                    fn(message);
+                    return;
+                }
+            }
         }
     }
     getId() {
@@ -682,29 +438,38 @@ class PeerGroup {
             });
         }
     }
-    // Called when someone establishes a new connection with us.
-    onConnection(conn) {
-        console.log(`${this.id}: connection from ${conn.peer}`);
-        conn.on('data', (data) => { this.onData(conn.peer, data); });
-        if (!this.knownIds.has(conn.peer)) {
-            this.broadcast(`meet: ${conn.peer}`);
-            this.knownIds.set(conn.peer, conn);
-        }
-        // TODO: Broadcast the new peer.
-    }
-    onData(fromId, data) {
-        console.log(`onData: ${data}`);
-        const reMessage = /([^:]+):(.*)/;
-        const match = data.match(reMessage);
-    }
-    // Called when we lose a connection with someone
-    onClose(id) {
-        this.knownIds.delete(id);
-    }
     broadcast(message) {
-        for (const conn of this.knownIds.values()) {
-            console.log(`${this.id}: to ${conn.peer}`);
-            conn.send(message);
+        for (const [id, conn] of this.peers) {
+            if (id === this.conn.id) {
+                continue;
+            }
+            this.runCallbacks('send', id, message);
+            if (conn.open) {
+                conn.send(message);
+            }
+            else {
+                this.runCallbacks('send', conn.peer, 'NOT OPEN');
+            }
+        }
+    }
+    meet(joinId) {
+        const masterConnection = this.conn.connect(joinId);
+        masterConnection.on('open', () => {
+            this.runCallbacks('open', joinId, '');
+        });
+        masterConnection.on('data', (data) => {
+            this.runCallbacks('data', masterConnection.peer, data);
+            this.handleData(data);
+        });
+        this.setAndIntroduce(joinId, masterConnection);
+    }
+    handleData(data) {
+        const keyPhrase = 'meet: ';
+        if (data.startsWith(keyPhrase)) {
+            const id = data.substr(keyPhrase.length);
+            if (!this.peers.has(id)) {
+                this.meet(id);
+            }
         }
     }
 }
@@ -795,8 +560,8 @@ exports.ProjectList = void 0;
 const project_1 = __webpack_require__(15);
 const tabCollection_1 = __webpack_require__(558);
 class ProjectList {
-    constructor(heartbeatGroup) {
-        this.heartbeatGroup = heartbeatGroup;
+    constructor(peerGroup) {
+        this.peerGroup = peerGroup;
         this.projects = [];
         this.projectNames = [];
         const body = document.getElementsByTagName('body')[0];
@@ -840,7 +605,7 @@ class ProjectList {
     }
     launchProject(project) {
         this.allDiv.remove();
-        const tc = new tabCollection_1.TabCollection(project, this.heartbeatGroup);
+        const tc = new tabCollection_1.TabCollection(project, this.peerGroup);
     }
 }
 exports.ProjectList = ProjectList;
@@ -1100,6 +865,7 @@ class Shadow {
         else {
             this.img.hidden = true;
         }
+        console.log(`AAAAA: setting text area: ${!!textArea}`);
         this.textArea = textArea;
     }
     moveTo(x, y) {
@@ -1127,53 +893,61 @@ exports.Shadow = Shadow;
 /***/ }),
 
 /***/ 717:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ShadowObserver = void 0;
 const shadow_1 = __webpack_require__(230);
 const shadowPosition_1 = __webpack_require__(315);
 class ShadowObserver {
-    constructor(heartbeatGroup) {
-        this.heartbeatGroup = heartbeatGroup;
+    constructor(peerGroup) {
+        this.peerGroup = peerGroup;
         this.shadows = new Map();
         this.setupCallbacks();
     }
     setupCallbacks() {
-        this.heartbeatGroup.getConnection().waitReady().then((conn) => {
-            this.id = conn.id();
+        return __awaiter(this, void 0, void 0, function* () {
+            this.id = yield this.peerGroup.getId();
             const sp = new shadowPosition_1.ShadowPosition();
             sp.ownerId = this.id;
             sp.hue = Math.random();
             const shadow = new shadow_1.Shadow(sp);
             console.log(`This id: ${this.id}`);
             this.shadows.set(this.id, shadow);
-        });
-        this.heartbeatGroup.getConnection().addCallback("shadow: ", (serialized) => {
-            console.log(`AAAAA Got: ${serialized}`);
-            const sp = JSON.parse(serialized);
-            if (!this.shadows.has(sp.ownerId)) {
-                const shadow = new shadow_1.Shadow(sp);
-                this.shadows.set(sp.ownerId, shadow);
-            }
-            else {
-                this.shadows.get(sp.ownerId).updatePosition(sp);
-            }
+            this.peerGroup.addCallback('shadow', (serialized) => {
+                const sp = JSON.parse(serialized);
+                if (!this.shadows.has(sp.ownerId)) {
+                    const shadow = new shadow_1.Shadow(sp);
+                    this.shadows.set(sp.ownerId, shadow);
+                }
+                else {
+                    this.shadows.get(sp.ownerId).updatePosition(sp);
+                }
+            });
         });
     }
     getShadowLocalShadow() {
-        return new Promise((resolve, reject) => {
-            this.heartbeatGroup.getConnection().waitReady().then((conn) => {
-                this.id = conn.id();
+        return __awaiter(this, void 0, void 0, function* () {
+            this.id = yield this.peerGroup.getId();
+            return new Promise((resolve, reject) => {
                 resolve(this.shadows.get(this.id));
             });
         });
     }
     updateShadow(shadow) {
         console.log(`AAAAA: send`);
-        this.heartbeatGroup.broadcast(`shadow: ${JSON.stringify(shadow.getPosition())}`);
+        this.peerGroup.broadcast(`shadow: ${JSON.stringify(shadow.getPosition())}`);
         this.shadows.set(this.id, shadow);
         // TODO: Update shadow position in tab collection...
     }
@@ -1226,39 +1000,44 @@ class SharedTextArea {
                 cb(this.shadow);
             }
         });
-        this.stateObserver.getConnection().waitReady().then((conn) => {
-            this.id = conn.id();
-            this.textArea.addEventListener('mousemove', (ev) => { this.handleMove(ev); });
-            this.textArea.addEventListener('scroll', (ev) => { this.handleMove(ev); });
-        });
+        // this.stateObserver.getConnection().waitReady().then(
+        //   (conn) => {
+        //     this.id = conn.id();
+        //     this.textArea.addEventListener('mousemove',
+        //       (ev) => { this.handleMove(ev); });
+        //     this.textArea.addEventListener('scroll',
+        //       (ev) => { this.handleMove(ev); })
+        //   });
         this.textArea = textArea;
         this.editManager = new editManager_1.EditManager(this.textArea);
         // TODO: Add line numbers
         this.textArea.contentEditable = "true";
         this.textArea.spellcheck = false;
         this.textArea.classList.add("sharedTextArea");
-        this.stateObserver.getConnection().addCallback("text: ", (serialized) => {
-            const update = JSON.parse(serialized);
-            console.log(`Recieved ${serialized.length} bytes.`);
-            const newText = atob(update.encodedText);
-            const oldText = this.textArea.value;
-            const charsAdded = newText.length - oldText.length;
-            const insertBefore = this.textArea.selectionStart > update.sourcePosition;
-            const newStart = this.textArea.selectionStart + (insertBefore ? charsAdded : 0);
-            const newEnd = this.textArea.selectionEnd + (insertBefore ? charsAdded : 0);
-            console.log(`Delta: ${charsAdded}, `
-                + `this position: ${this.textArea.selectionStart}, `
-                + `incoming position: ${update.sourcePosition}`);
-            this.textArea.value = newText;
-            this.textArea.setSelectionRange(newStart, newEnd);
-        });
-        this.stateObserver.addMeetCallback((peerId) => {
-            const update = new TextUpdate();
-            update.encodedText = btoa(this.textArea.value);
-            update.sourcePosition = this.textArea.selectionStart;
-            const message = `text: ${JSON.stringify(update)}`;
-            this.stateObserver.getConnection().send(peerId, message);
-        });
+        // this.stateObserver.getConnection().addCallback("text: ",
+        //   (serialized: string) => {
+        //     const update: TextUpdate = JSON.parse(serialized) as TextUpdate;
+        //     console.log(`Recieved ${serialized.length} bytes.`);
+        //     const newText = atob(update.encodedText);
+        //     const oldText = this.textArea.value;
+        //     const charsAdded = newText.length - oldText.length;
+        //     const insertBefore = this.textArea.selectionStart > update.sourcePosition;
+        //     const newStart = this.textArea.selectionStart + (insertBefore ? charsAdded : 0);
+        //     const newEnd = this.textArea.selectionEnd + (insertBefore ? charsAdded : 0);
+        //     console.log(`Delta: ${charsAdded}, `
+        //       + `this position: ${this.textArea.selectionStart}, `
+        //       + `incoming position: ${update.sourcePosition}`);
+        //     this.textArea.value = newText;
+        //     this.textArea.setSelectionRange(newStart, newEnd);
+        //   }
+        // )
+        // this.stateObserver.addMeetCallback((peerId: string) => {
+        //   const update = new TextUpdate();
+        //   update.encodedText = btoa(this.textArea.value);
+        //   update.sourcePosition = this.textArea.selectionStart;
+        //   const message = `text: ${JSON.stringify(update)}`;
+        //   this.stateObserver.getConnection().send(peerId, message);
+        // })
         this.setUpEventListeners();
     }
     readyShadow() {
@@ -1288,8 +1067,10 @@ class SharedTextArea {
         return this.tabId;
     }
     show() {
+        console.log("AAAAA: show.");
         this.textArea.hidden = false;
         this.readyShadow().then((shadow) => {
+            console.log("AAAAA: Shadow is ready.");
             shadow.setCurrentTab(this.tabId, this.textArea);
         });
     }
@@ -1352,39 +1133,40 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StateObserver = void 0;
 const gameFrame_1 = __webpack_require__(885);
 class StateObserver {
-    constructor(heartbeatGroup, editManager) {
-        this.heartbeatGroup = heartbeatGroup;
+    constructor(peerGroup, editManager) {
+        this.peerGroup = peerGroup;
         this.gameFrame = new gameFrame_1.GameFrame();
         this.editManager = editManager;
-        heartbeatGroup.getConnection().waitReady().then((connection) => {
-            this.initialize(connection);
-        });
+        // peerGroup.getConnection().waitReady().then((connection) => {
+        //   this.initialize(connection);
+        // })
     }
-    initialize(connection) {
-        this.id = connection.id();
-        this.codeMap = new Map();
-        const restartButton = document.createElement('div');
-        restartButton.innerText = "Restart";
-        restartButton.id = "Restart";
-        const body = document.getElementsByTagName('body')[0];
-        body.appendChild(restartButton);
-        restartButton.addEventListener('click', (ev) => {
-            this.sendCode();
-        });
-        this.getConnection().addCallback("edit: ", (serialized) => {
-            const edits = JSON.parse(serialized);
-            this.editManager.applyEdits(edits);
-        });
-    }
-    getConnection() {
-        return this.heartbeatGroup.getConnection();
-    }
-    addMeetCallback(callback) {
-        this.heartbeatGroup.addMeetCallback(callback);
-    }
+    // initialize(connection: PeerConnection) {
+    //   this.id = connection.id();
+    //   this.codeMap = new Map<string, string>();
+    //   const restartButton = document.createElement('div');
+    //   restartButton.innerText = "Restart";
+    //   restartButton.id = "Restart";
+    //   const body = document.getElementsByTagName('body')[0];
+    //   body.appendChild(restartButton);
+    //   restartButton.addEventListener('click', (ev) => {
+    //     this.sendCode();
+    //   });
+    //   this.getConnection().addCallback("edit: ",
+    //     (serialized: string) => {
+    //       const edits: Edit<string>[] = JSON.parse(serialized);
+    //       this.editManager.applyEdits(edits);
+    //     });
+    // }
+    // getConnection() {
+    //   return this.peerGroup.getConnection();
+    // }
+    // addMeetCallback(callback: Function) {
+    //   this.peerGroup.addMeetCallback(callback);
+    // }
     sendEdits(edits) {
         const message = `edit: ${JSON.stringify(edits)}`;
-        this.heartbeatGroup.broadcast(message);
+        this.peerGroup.broadcast(message);
     }
     sendCode() {
         let allCode = "";
@@ -1415,12 +1197,12 @@ const editManager_1 = __webpack_require__(268);
 const sharedTextArea_1 = __webpack_require__(206);
 const stateObserver_1 = __webpack_require__(935);
 class Tab {
-    constructor(tabId, textArea, heartbeatGroup, shadowObserver) {
+    constructor(tabId, textArea, peerGroup, shadowObserver) {
         console.assert(textArea, "Text area required.");
         this.tabId = tabId;
         this.textArea = textArea;
         this.editManager = new editManager_1.EditManager(textArea);
-        this.stateObserver = new stateObserver_1.StateObserver(heartbeatGroup, this.editManager);
+        this.stateObserver = new stateObserver_1.StateObserver(peerGroup, this.editManager);
         this.sharedTextArea = new sharedTextArea_1.SharedTextArea(tabId, this.stateObserver, shadowObserver, this.textArea);
     }
     getTabId() {
@@ -1451,10 +1233,10 @@ exports.TabCollection = void 0;
 const shadowObserver_1 = __webpack_require__(717);
 const tab_1 = __webpack_require__(664);
 class TabCollection {
-    constructor(project, heartbeatGroup) {
+    constructor(project, peerGroup) {
         this.project = project;
-        this.heartbeatGroup = heartbeatGroup;
-        this.shadowObserver = new shadowObserver_1.ShadowObserver(this.heartbeatGroup);
+        this.peerGroup = peerGroup;
+        this.shadowObserver = new shadowObserver_1.ShadowObserver(this.peerGroup);
         this.tabMap = new Map();
         this.tabList = [];
         const body = document.getElementsByTagName('body')[0];
@@ -1505,7 +1287,7 @@ class TabCollection {
         this.tabCollectionDiv.appendChild(textArea);
         textArea.value = content;
         const tabButton = this.createButton(tabId);
-        const tab = new tab_1.Tab(tabId, textArea, this.heartbeatGroup, this.shadowObserver);
+        const tab = new tab_1.Tab(tabId, textArea, this.peerGroup, this.shadowObserver);
         tabButton.classList.add('active');
         this.tabMap.set(tabId, tab);
         this.tabList.push(tab);
@@ -1534,17 +1316,50 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Test = void 0;
 const peerGroup_1 = __webpack_require__(205);
+class Box {
+    constructor() {
+        this.d = document.createElement('div');
+        const body = document.getElementsByTagName('body')[0];
+        body.appendChild(this.d);
+    }
+    add(message, color) {
+        const div = document.createElement('div');
+        const s = window.performance.now() / 1000;
+        div.innerText = `${s.toFixed(2)}: ${message}`;
+        div.style.color = color;
+        this.d.appendChild(div);
+    }
+}
 class Test {
     constructor() {
         this.start();
     }
     start() {
         return __awaiter(this, void 0, void 0, function* () {
-            const pg1 = yield peerGroup_1.PeerGroup.make();
+            const box = new Box();
+            box.add('Start 1', 'white');
+            const pg1 = yield peerGroup_1.PeerGroup.make(null, (ev, id, data) => {
+                box.add(`${ev}@${id}: ${data}`, 'red');
+            });
             const joinId = yield pg1.getId();
-            console.log(`Join id: ${joinId}`);
-            const pg2 = yield peerGroup_1.PeerGroup.make(joinId);
-            pg2.broadcast("Hello");
+            box.add(`Join id: ${joinId}`, 'white');
+            const pg2 = yield peerGroup_1.PeerGroup.make(joinId, (ev, id, data) => {
+                box.add(`${ev}@${id}: ${data}`, 'green');
+            });
+            const id2 = yield pg2.getId();
+            box.add(`ID2: ${id2}`, 'white');
+            pg2.addCallback('meet', (message) => {
+                box.add(`MEEEEEEETing '${message}'`, 'lightgreen');
+            });
+            const pg3 = yield peerGroup_1.PeerGroup.make(joinId, (ev, id, data) => {
+                box.add(`${ev}@${id}: ${data}`, 'blue');
+            });
+            const id3 = yield pg3.getId();
+            box.add(`ID2: ${id3}`, 'white');
+            yield new Promise((resolve, reject) => { setTimeout(resolve, 3000); });
+            pg2.broadcast("Hello from green");
+            pg1.broadcast("Hello from red");
+            pg3.broadcast("Hello from blue");
         });
     }
 }
@@ -10685,8 +10500,8 @@ module.exports = webpackEmptyContext;
 /************************************************************************/
 /******/ 	// startup
 /******/ 	// Load entry module
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
 /******/ 	__webpack_require__(138);
-/******/ 	// This entry module used 'exports' so it can't be inlined
 /******/ })()
 ;
 //# sourceMappingURL=main.js.map
